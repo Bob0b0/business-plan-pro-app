@@ -117,7 +117,7 @@ if not df_full_data.empty:
         # Voci componenti PFN - Nascondile dal report finale
         {'Voce': 'Liquidità', 'Tipo': 'Dettaglio', 'ID_RI': 'RI31', 'Ordine': 550, 'Visibile': False}, 
         {'Voce': 'Banche passive', 'Tipo': 'Dettaglio', 'ID_RI': 'RI33', 'Ordine': 552, 'Visibile': False}, 
-        {'Voce': 'Posizione finanziaria netta', 'Tipo': 'Calcolo', 'Formula_Refs': ['RI33', 'RI31'], 'Formula': lambda d: d['RI33'] - d['RI31'], 'Grassetto': True, 'Maiuscolo': False, 'Ordine': 556}, 
+        {'Voce': 'Posizione finanziaria netta', 'Tipo': 'Calcolo', 'Formula_Refs': ['RI33', 'RI31'], 'Formula': lambda d: d['RI33'] - d['RI31'], 'Grassetto': False, 'Maiuscolo': False, 'Ordine': 556}, 
         {'Voce': 'Patrimonio netto', 'Tipo': 'Dettaglio', 'ID_RI': 'RI32', 'Ordine': 560},
         {'Voce': 'CAPITALE IMPIEGATO', 'Tipo': 'Calcolo', 'Formula_Refs': ['RI31', 'RI32', 'RI33'], 'Formula': lambda d: -d['RI31'] + d['RI32'] + d['RI33'], 'Grassetto': True, 'Maiuscolo': True, 'Ordine': 570}, 
     ]
@@ -289,7 +289,6 @@ def display_with_html(df, years, structure):
         }
         .custom-table td.numeric {
             text-align: right;
-            font-family: 'Courier New', monospace;
         }
         .custom-table tr.bold-row td {
             font-weight: bold;
