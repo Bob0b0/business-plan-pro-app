@@ -337,7 +337,7 @@ if not df_final_display.empty:
     st.markdown("### Visualizzazione Tabellare")
     
     # Seleziona la soluzione da usare (commenta/decommenta quella desiderata)
-    use_html_solution = False  # Cambia a False per usare st.dataframe
+    use_html_solution = True  # Cambia a False per usare st.dataframe
     
     if use_html_solution:
         display_with_html(df_final_display, years_to_display, report_structure_ce)
