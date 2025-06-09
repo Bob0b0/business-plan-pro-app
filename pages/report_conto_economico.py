@@ -294,7 +294,6 @@ def display_with_html(df, years, structure):
         }
         .custom-table td.numeric {
             text-align: right;
-            font-family: 'Courier New', monospace;
         }
         .custom-table tr.bold-row td {
             font-weight: bold;
