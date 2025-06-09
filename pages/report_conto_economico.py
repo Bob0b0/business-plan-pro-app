@@ -1,5 +1,5 @@
-# pages/report_conto_economico.py - Progetto Business Plan Pro - versione 2.6 (Correzione NameError available_years) - 2025-06-08
-# Obiettivo: Report Conto Economico completo e corretto.
+# pages/report_conto_economico.py - Progetto Business Plan Pro - versione 2.7 - 2025-06-08
+# Obiettivo: Testare allineamento standard di NumberColumn nel Cloud.
 
 import streamlit as st
 import sqlite3
@@ -82,16 +82,9 @@ finally:
         conn.close()
 
 # --- Pre-elaborazione Dati per Riclassificazione ---
-# CORREZIONE: Inizializza queste variabili PRIMA del blocco if not df_full_data.empty:
-df_pivot_by_id_ri_year = pd.DataFrame()
-id_ri_to_ricla_name = {}
-df_final_display = pd.DataFrame()
-df_export_riclassificato_actual = pd.DataFrame() # Inizializza anche questo per l'export
-
 if not df_full_data.empty:
     df_full_data['importo'] = pd.to_numeric(df_full_data['importo'], errors='coerce').fillna(0).astype(int)
     
-    # available_years è già definito come years_to_display, usiamo direttamente quello
     # Raggruppa gli importi per ID_RI e per anno
     df_pivot_by_id_ri_year = df_full_data.pivot_table(
         index='ID_RI',      
@@ -100,6 +93,7 @@ if not df_full_data.empty:
         aggfunc='sum'       
     ).fillna(0).astype(int) 
 
+    # Assicurati di avere la mappatura ID_RI -> Ricla (nome della voce)
     id_ri_to_ricla_name = df_full_data[['ID_RI', 'Ricla']].drop_duplicates().set_index('ID_RI')['Ricla'].to_dict()
 
     # --- Definizione delle Voci del Report e delle Formule (Conto Economico) ---
@@ -109,7 +103,7 @@ if not df_full_data.empty:
         {'Voce': 'Ricavi dalle vendite e prestazioni', 'Tipo': 'Dettaglio', 'ID_RI': 'RI01', 'Ordine': 110},
         {'Voce': 'Variazione rimanenze prodotti finiti', 'Tipo': 'Dettaglio', 'ID_RI': 'RI02', 'Ordine': 120},
         {'Voce': 'Altri ricavi e proventi', 'Tipo': 'Dettaglio', 'ID_RI': 'RI03', 'Ordine': 130},
-        {'Voce': 'Costi capitalizzati', 'Tipo': 'Dettaglio', 'ID_RI': 'RI04', 'Ordine': 140}, # Spostato RI04 qui per seguire ordine del facsimile
+        {'Voce': 'Costi capitalizzati', 'Tipo': 'Dettaglio', 'ID_RI': 'RI04', 'Ordine': 140}, 
         {'Voce': 'VALORE DELLA PRODUZIONE', 'Tipo': 'Calcolo', 'Formula_Refs': ['RI01', 'RI02', 'RI03', 'RI04'], 'Formula': lambda d: d['RI01'] + d['RI02'] + d['RI03'] + d['RI04'], 'Grassetto': True, 'Maiuscolo': True, 'Ordine': 150},
         {'Voce': 'Acquisti di merci', 'Tipo': 'Dettaglio', 'ID_RI': 'RI05', 'Ordine': 160},
         {'Voce': 'Costi per servizi', 'Tipo': 'Dettaglio', 'ID_RI': 'RI06', 'Ordine': 170},
@@ -141,7 +135,6 @@ if not df_full_data.empty:
     for year in years_to_display:
         for item in report_structure_ce: # Per il CE
             if item['Tipo'] == 'Dettaglio':
-                # Prende il valore dal df_pivot_by_id_ri_year
                 if year in df_pivot_by_id_ri_year.columns and item['ID_RI'] in df_pivot_by_id_ri_year.index:
                     value = df_pivot_by_id_ri_year.loc[item['ID_RI'], year]
                     values_by_year[year][item['ID_RI']] = value
@@ -154,7 +147,7 @@ if not df_full_data.empty:
     for item in sorted(report_structure_ce, key=lambda x: x['Ordine']): # Ordina per Ordine
         if item['Tipo'] == 'Calcolo':
             voce_calcolata_name = item['Voce']
-            for year in years_to_display: # CORREZIONE: Qui deve essere years_to_display
+            for year in years_to_display: # Qui deve essere years_to_display
                 try:
                     formula_input_dict = {}
                     for ref in item['Formula_Refs']:
@@ -181,7 +174,6 @@ if not df_full_data.empty:
     for item in report_structure_ce: # Per il CE
         row = {'Voce': item['Voce']}
         
-        # Applica maiuscolo/minuscolo alle voci
         if item.get('Maiuscolo', False):
             row['Voce'] = row['Voce'].upper()
         
@@ -263,7 +255,7 @@ if not df_final_display.empty:
         if item.get('Maiuscolo', False):
             row_values['Voce'] = row_values['Voce'].upper()
         
-        for year in years_to_display: # CORREZIONE: Qui deve essere years_to_display
+        for year in years_to_display: # Anni da visualizzare
             val = 0
             if item['Tipo'] == 'Intestazione':
                 row_values[str(year)] = ""
@@ -293,7 +285,7 @@ if not df_final_display.empty:
 
         excel_buffer_riclass.seek(0)
         st.download_button(
-            label="Esporta Conto Economico in Excel",
+            label="Esporta Conto Economico in PDF",
             data=excel_buffer_riclass,
             file_name="conto_economico_riclassificato.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -309,7 +301,7 @@ if not df_final_display.empty:
             if 'h4_bold' not in styles:
                 styles.add(ParagraphStyle(name='h4_bold', parent=styles['h4'], fontName='Helvetica-Bold'))
             if 'h4_right' not in styles:
-                styles.add(ParagraphStyle(name='h4_right', parent=styles['h4'], alignment=2)) 
+                styles.add(ParagraphStyle(name='h4_right', parent=styles['h4'], alignment=2)) # 2 = TA_RIGHT
 
             story = []
 
