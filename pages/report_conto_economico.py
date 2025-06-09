@@ -1,5 +1,5 @@
-# pages/report_conto_economico.py - Progetto Business Plan Pro - versione 2.7 - 2025-06-08
-# Obiettivo: Allineamento e formattazione garantiti (ritorno a st.columns per controllo totale).
+# pages/report_conto_economico.py - Progetto Business Plan Pro - versione 3.0 - 2025-06-08
+# Obiettivo: Report Conto Economico con rendering riga per riga (st.columns), allineamento garantito.
 
 import streamlit as st
 import sqlite3
@@ -82,6 +82,10 @@ finally:
         conn.close()
 
 # --- Pre-elaborazione Dati per Riclassificazione ---
+# CORREZIONE: Inizializza df_pivot_by_id_ri_year e id_ri_to_ricla_name anche se df_full_data è vuoto
+df_pivot_by_id_ri_year = pd.DataFrame()
+id_ri_to_ricla_name = {}
+
 if not df_full_data.empty:
     df_full_data['importo'] = pd.to_numeric(df_full_data['importo'], errors='coerce').fillna(0).astype(int)
     
@@ -213,23 +217,49 @@ if not df_final_display.empty:
         key="report_riclassificato_conto_economico_dataframe"
     )
 
-    # --- NON INCLUDERE QUI IL CSS ---
-    # Il CSS aggressivo per l'allineamento è problematico e verrà gestito
-    # al di fuori di questo blocco, per non influenzare la visualizzazione base
-    # con st.dataframe.
+    # --- CSS per allineamento a destra degli importi e grassetto ---
+    # CORREZIONE: Ho incluso qui il CSS per allineamento e maiuscole/minuscole
+    # Questo è il CSS per l'allineamento degli importi.
+    css_string = """
+    <style>
+    /* Allinea intestazioni degli anni a destra */
+    """
+    for i, year in enumerate(years_to_display):
+        css_string += f"""
+        [data-testid="stDataFrame"] .column-header:has([data-testid="stTextLabel"]:contains("{year}")) div[data-testid="stTextLabel"] {{
+            text-align: right !important;
+        }}
+        """
+        # Allinea le celle degli anni a destra
+        css_string += f"""
+        [data-testid="stDataFrame"] .row-cells > div:nth-child({i+2}) div[data-testid="stCell"] div {{
+            text-align: right !important;
+            justify-content: flex-end !important;
+            padding-right: 12px !important; 
+        }}
+        """
+    css_string += """
+    /* Rimuovi la sottolineatura dal testo dell'intestazione di st.dataframe */
+    .column-header div[data-testid="stTextLabel"] {
+        text_decoration: none !important;
+    }
+    </style>
+    """
+    st.markdown(css_string, unsafe_allow_html=True)
+
 
     # --- Esportazione Excel e PDF per il Report Riclassificato ---
     st.markdown("---")
     st.subheader("Esporta Conto Economico Riclassificato")
 
-    df_export_riclassificato_actual = pd.DataFrame() # Inizializza qui
+    df_export_riclassificato_actual = pd.DataFrame() 
     export_rows = []
-    for item in report_structure_ce: # Per il CE
+    for item in report_structure_ce: 
         row_values = {'Voce': item['Voce']}
         if item.get('Maiuscolo', False):
             row_values['Voce'] = row_values['Voce'].upper()
         
-        for year in years_to_display: # Anni da visualizzare
+        for year in years_to_display: 
             val = 0
             if item['Tipo'] == 'Intestazione':
                 row_values[str(year)] = ""
@@ -242,20 +272,19 @@ if not df_final_display.empty:
         export_rows.append(row_values)
     df_export_riclassificato_actual = pd.DataFrame(export_rows)
 
-    df_export_riclassificato_actual.columns = ['Voce'] + [str(year) for year in available_years] # CORREZIONE: Use available_years
-
+    df_export_riclassificato_actual.columns = ['Voce'] + [str(year) for year in years_to_display] 
 
     col_excel_riclass, col_pdf_riclass = st.columns(2)
 
     with col_excel_riclass:
         excel_buffer_riclass = io.BytesIO()
         with pd.ExcelWriter(excel_buffer_riclass, engine='xlsxwriter') as writer:
-            df_export_riclassificato_actual.to_excel(writer, index=False, sheet_name='Conto Eco Riclass') # NOME PIU' BREVE
+            df_export_riclassificato_actual.to_excel(writer, index=False, sheet_name='Conto Eco Riclass') 
             workbook = writer.book
-            worksheet = writer.sheets['Conto Eco Riclass'] # NOME PIU' BREVE
+            worksheet = writer.sheets['Conto Eco Riclass'] 
             
             num_format = workbook.add_format({'num_format': '#,##0'})
-            for col_idx, year in enumerate(available_years): # CORREZIONE: Use available_years
+            for col_idx, year in enumerate(years_to_display): 
                 worksheet.set_column(col_idx + 1, col_idx + 1, None, num_format) 
 
         excel_buffer_riclass.seek(0)
@@ -296,7 +325,7 @@ if not df_final_display.empty:
 
             for index, row in df_data.iterrows():
                 row_list = []
-                structure_item_found = next((item for item in report_structure_ce if item['Voce'].upper() == row['Voce'].upper() or item['Voce'] == row['Voce']), None) # Per il CE
+                structure_item_found = next((item for item in report_structure_ce if item['Voce'].upper() == row['Voce'].upper() or item['Voce'] == row['Voce']), None) 
                 is_bold_row = structure_item_found.get('Grassetto', False) if structure_item_found else False
                 
                 for col_name in df_data.columns:
