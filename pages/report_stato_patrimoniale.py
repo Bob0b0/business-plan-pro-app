@@ -1,5 +1,5 @@
 # pages/report_stato_patrimoniale.py - Progetto Business Plan Pro - versione 2.0 - 2025-06-09
-# Soluzioni complete per la visualizzazione tabellare con allineamento e formattazione
+# Soluzioni complete per la visualizzazione tabellare con allineamento e formattazione - Deepseek
 
 import streamlit as st
 import sqlite3
