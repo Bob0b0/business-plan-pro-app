@@ -1,5 +1,5 @@
-# pages/report_conto_economico.py - Progetto Business Plan Pro - versione 3.2 - 2025-06-09
-# Basato sulla TUA versione 3.0 funzionante, con soluzione esperto per visualizzazione tabella.
+# pages/report_conto_economico.py - Progetto Business Plan Pro - versione 3.0 - 2025-06-08
+# Obiettivo: Report Conto Economico con rendering riga per riga (st.columns), allineamento garantito.
 
 import streamlit as st
 import sqlite3
@@ -82,7 +82,7 @@ finally:
         conn.close()
 
 # --- Pre-elaborazione Dati per Riclassificazione ---
-# Inizializza df_pivot_by_id_ri_year e id_ri_to_ricla_name anche se df_full_data è vuoto
+# CORREZIONE: Inizializza df_pivot_by_id_ri_year e id_ri_to_ricla_name anche se df_full_data è vuoto
 df_pivot_by_id_ri_year = pd.DataFrame()
 id_ri_to_ricla_name = {}
 
@@ -97,6 +97,7 @@ if not df_full_data.empty:
         aggfunc='sum'       
     ).fillna(0).astype(int) 
 
+    # Assicurati di avere la mappatura ID_RI -> Ricla (nome della voce)
     id_ri_to_ricla_name = df_full_data[['ID_RI', 'Ricla']].drop_duplicates().set_index('ID_RI')['Ricla'].to_dict()
 
     # --- Definizione delle Voci del Report e delle Formule (Conto Economico) ---
@@ -200,66 +201,51 @@ else: # Se df_full_data è vuoto, df_final_display deve essere inizializzato com
     df_final_display = pd.DataFrame() 
 
 
-# --- Visualizzazione della Tabella Riclassificata (Rendering riga per riga) ---
+# --- Visualizzazione della Tabella Riclassificata ---
 if not df_final_display.empty:
-    # Intestazioni delle colonne dinamiche
-    col_widths = [0.3] + [0.7 / len(years_to_display)] * len(years_to_display) # Voce + Anni (divido spazio rimanente)
-    header_cols = st.columns(col_widths)
-    
-    # Intestazione 'Voce'
-    with header_cols[0]:
-        st.markdown("**Voce**")
-    
-    # Intestazioni degli anni
-    for i, year in enumerate(years_to_display):
-        with header_cols[i+1]:
-            st.markdown(f"<div style='text-align: right; font-weight: bold;'>{year}</div>", unsafe_allow_html=True)
-    
-    st.markdown("---") # Separatore dopo le intestazioni
+    column_config_riclass = {
+        "Voce": st.column_config.TextColumn("Voce", help="Voce di Bilancio Riclassificata", width="large"),
+    }
+    for year in years_to_display: 
+        column_config_riclass[str(year)] = st.column_config.TextColumn(str(year), help=f"Valore per l'anno {year}", width="medium")
 
-    # Righe di dati
-    for index, row in df_final_display.iterrows():
-        cols = st.columns(col_widths)
-        
-        # Voce
-        with cols[0]:
-            # Stile grassetto per la Voce
-            if row['Grassetto']: # Flag Grassetto da report_structure_ce
-                st.markdown(f"<b>{row['Voce']}</b>", unsafe_allow_html=True)
-            else:
-                st.write(row['Voce'])
-        
-        # Anni (valori)
-        for i, year_col in enumerate(years_to_display):
-            with cols[i+1]:
-                # Allineamento a destra e formattazione per gli importi
-                # Valore numerico formattato come stringa
-                val_to_display = row[str(year_col)]
-                if row['Grassetto']: # Flag Grassetto
-                    st.markdown(f"<div style='text-align: right;'><b>{val_to_display}</b></div>", unsafe_allow_html=True)
-                else:
-                    st.markdown(f"<div style='text-align: right;'>{val_to_display}</div>", unsafe_allow_html=True)
+    st.dataframe(
+        df_final_display, 
+        column_config=column_config_riclass,
+        hide_index=True, 
+        use_container_width=True,
+        key="report_riclassificato_conto_economico_dataframe"
+    )
 
-    # --- CSS per ridurre spazio tra righe (solo per st.columns) ---
-    st.markdown("""
+    # --- CSS per allineamento a destra degli importi e grassetto ---
+    # CORREZIONE: Ho incluso qui il CSS per allineamento e maiuscole/minuscole
+    # Questo è il CSS per l'allineamento degli importi.
+    css_string = """
     <style>
-    /* Rimuovi spazio (gap) tra le colonne */
-    div[data-testid="stHorizontalBlock"] {
-        gap: 0.2rem !important;
-    }
-
-    /* Riduci il padding verticale per le celle delle righe */
-    div[data-testid^="stColumn"] > div > div > div {
-        padding-top: 0.05rem !important; /* Ancora più piccolo */
-        padding-bottom: 0.05rem !important; /* Ancora più piccolo */
-    }
-
-    /* Rimuovi il margine inferiore dalle righe per compattarle verticalmente */
-    div[data-testid^="stVerticalBlock"] > div > div:not(:last-child) {
-        margin-bottom: -1.2rem !important; /* Valore aggressivo */
+    /* Allinea intestazioni degli anni a destra */
+    """
+    for i, year in enumerate(years_to_display):
+        css_string += f"""
+        [data-testid="stDataFrame"] .column-header:has([data-testid="stTextLabel"]:contains("{year}")) div[data-testid="stTextLabel"] {{
+            text-align: right !important;
+        }}
+        """
+        # Allinea le celle degli anni a destra
+        css_string += f"""
+        [data-testid="stDataFrame"] .row-cells > div:nth-child({i+2}) div[data-testid="stCell"] div {{
+            text-align: right !important;
+            justify-content: flex-end !important;
+            padding-right: 12px !important; 
+        }}
+        """
+    css_string += """
+    /* Rimuovi la sottolineatura dal testo dell'intestazione di st.dataframe */
+    .column-header div[data-testid="stTextLabel"] {
+        text_decoration: none !important;
     }
     </style>
-    """, unsafe_allow_html=True)
+    """
+    st.markdown(css_string, unsafe_allow_html=True)
 
 
     # --- Esportazione Excel e PDF per il Report Riclassificato ---
