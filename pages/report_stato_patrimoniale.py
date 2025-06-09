@@ -1,5 +1,5 @@
-# pages/report_stato_patrimoniale.py - Progetto Business Plan Pro - versione 1.7 - 2025-06-08
-# Obiettivo: PFN con maiuscolo solo iniziale nel report.
+# pages/report_stato_patrimoniale.py - Progetto Business Plan Pro - versione 2.0 - 2025-06-09
+# Soluzioni complete per la visualizzazione tabellare con allineamento e formattazione
 
 import streamlit as st
 import sqlite3
@@ -11,6 +11,7 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle 
 from reportlab.lib.units import inch
+from streamlit.components.v1 import html  # Per la soluzione HTML personalizzata
 
 # Chiama la funzione per visualizzare i filtri nella sidebar
 sidebar_filtri.display_sidebar_filters()
@@ -34,17 +35,15 @@ if selected_anni:
     years_to_display = sorted([int(y) for y in selected_anni])
     if len(years_to_display) == 1:
         prev_year = years_to_display[0] - 1
-        if prev_year >= (min([int(y) for y in st.session_state.anni_tutti_disponibili]) if st.session_state.anni_tutti_disponibili else 0) : 
+        if prev_year >= (min([int(y) for y in st.session_state.anni_tutti_disponibili]) if st.session_state.anni_tutti_disponibili else 0):
             years_to_display.insert(0, prev_year)
     years_to_display = sorted(list(set(years_to_display))) 
-
-else: # Se nessun anno è selezionato, mostra tutti gli anni disponibili
+else:
     years_to_display = sorted([int(y) for y in st.session_state.anni_tutti_disponibili])
 
 if not years_to_display:
     st.info("Nessun anno disponibile o selezionato per il report.")
-    st.stop() 
-
+    st.stop()
 
 # Connessione al database e caricamento dati
 conn = None
@@ -93,7 +92,7 @@ if not df_full_data.empty:
         aggfunc='sum'       
     ).fillna(0).astype(int) 
 
-    # Assicurati di avere la mappatura ID_RI -> Ricla (nome della voce)
+    # Mappatura ID_RI -> Ricla (nome della voce)
     id_ri_to_ricla_name = df_full_data[['ID_RI', 'Ricla']].drop_duplicates().set_index('ID_RI')['Ricla'].to_dict()
 
     # --- Definizione delle Voci del Report e delle Formule (Stato Patrimoniale) ---
@@ -118,9 +117,7 @@ if not df_full_data.empty:
         # Voci componenti PFN - Nascondile dal report finale
         {'Voce': 'Liquidità', 'Tipo': 'Dettaglio', 'ID_RI': 'RI31', 'Ordine': 550, 'Visibile': False}, 
         {'Voce': 'Banche passive', 'Tipo': 'Dettaglio', 'ID_RI': 'RI33', 'Ordine': 552, 'Visibile': False}, 
-        # CORREZIONE QUI: Maiuscolo a False per la voce PFN
         {'Voce': 'Posizione finanziaria netta', 'Tipo': 'Calcolo', 'Formula_Refs': ['RI33', 'RI31'], 'Formula': lambda d: d['RI33'] - d['RI31'], 'Grassetto': True, 'Maiuscolo': False, 'Ordine': 556}, 
-        
         {'Voce': 'Patrimonio netto', 'Tipo': 'Dettaglio', 'ID_RI': 'RI32', 'Ordine': 560},
         {'Voce': 'CAPITALE IMPIEGATO', 'Tipo': 'Calcolo', 'Formula_Refs': ['RI31', 'RI32', 'RI33'], 'Formula': lambda d: -d['RI31'] + d['RI32'] + d['RI33'], 'Grassetto': True, 'Maiuscolo': True, 'Ordine': 570}, 
     ]
@@ -130,7 +127,7 @@ if not df_full_data.empty:
     
     # Popolare i valori di dettaglio
     for year in years_to_display:
-        for item in report_structure_sp: # Per lo SP
+        for item in report_structure_sp:
             if item['Tipo'] == 'Dettaglio':
                 if year in df_pivot_by_id_ri_year.columns and item['ID_RI'] in df_pivot_by_id_ri_year.index:
                     value = df_pivot_by_id_ri_year.loc[item['ID_RI'], year]
@@ -139,8 +136,8 @@ if not df_full_data.empty:
                     value = 0 
                 values_by_year[year][item['ID_RI']] = value 
 
-    # Risolvere le formule di calcolo (iterando sull'ordine)
-    for item in sorted(report_structure_sp, key=lambda x: x['Ordine']): # Per lo SP
+    # Risolvere le formule di calcolo
+    for item in sorted(report_structure_sp, key=lambda x: x['Ordine']):
         if item['Tipo'] == 'Calcolo':
             voce_calcolata_name = item['Voce']
             for year in years_to_display:
@@ -155,7 +152,6 @@ if not df_full_data.empty:
                             formula_input_dict[ref] = 0 
                         
                     calculated_value = item['Formula'](formula_input_dict)
-                    
                     values_by_year[year][voce_calcolata_name] = calculated_value
 
                 except KeyError as ke:
@@ -167,9 +163,8 @@ if not df_full_data.empty:
 
     # Costruire il DataFrame finale per la visualizzazione
     report_data_for_display = []
-    for item in report_structure_sp: # Per lo SP
-        # Usa item.get('Visibile', True) per controllare se la voce deve essere visualizzata
-        if item.get('Visibile', True) == False: 
+    for item in report_structure_sp:
+        if item.get('Visibile', True) == False:
             continue
 
         row = {'Voce': item['Voce']}
@@ -183,10 +178,10 @@ if not df_full_data.empty:
                 row[str(year)] = "" 
             elif item['Tipo'] == 'Dettaglio':
                 val = values_by_year[year].get(item['ID_RI'], 0)
-                row[str(year)] = f"{int(val):,}".replace(",", "X").replace(".", ",").replace("X", ".") if val != 0 else "0" 
+                row[str(year)] = val  # Conserviamo il valore numerico per la formattazione
             elif item['Tipo'] == 'Calcolo':
                 val = values_by_year[year].get(item['Voce'], 0) 
-                row[str(year)] = f"{int(val):,}".replace(",", "X").replace(".", ",").replace("X", ".") if val != 0 else "0"
+                row[str(year)] = val
         
         report_data_for_display.append(row)
 
@@ -194,70 +189,171 @@ if not df_full_data.empty:
 
 else:
     st.info("Nessun dato trovato per la riclassificazione con i filtri selezionati.")
-    df_final_display = pd.DataFrame() 
+    df_final_display = pd.DataFrame()
 
+# --- SOLUZIONE 1: st.dataframe con formattazione personalizzata ---
+def display_with_dataframe(df, years):
+    if df.empty:
+        return
+    
+    # Formatta i numeri con separatori migliaia (punto)
+    df_formatted = df.copy()
+    for year in years:
+        df_formatted[str(year)] = df_formatted[str(year)].apply(
+            lambda x: f"{int(x):,}".replace(",", ".") if str(x).isdigit() else x
+        )
+    
+    # Configurazione delle colonne
+    column_config = {
+        "Voce": st.column_config.Column(
+            "Voce", 
+            width="large",
+            help="Voce di Bilancio Riclassificata"
+        )
+    }
+    
+    for year in years:
+        column_config[str(year)] = st.column_config.TextColumn(
+            str(year),
+            help=f"Valore per l'anno {year}",
+            width="medium"
+        )
+    
+    # Visualizzazione della tabella
+    st.dataframe(
+        df_formatted,
+        column_config=column_config,
+        hide_index=True,
+        use_container_width=True,
+        height=(len(df_formatted) + 1) * 35 + 3  # Altezza dinamica
+    )
+    
+    # CSS per forzare l'allineamento a destra
+    st.markdown("""
+    <style>
+        [data-testid="stDataFrame"] div[data-testid="stDataFrameContainer"] {
+            width: 100%;
+        }
+        [data-testid="stDataFrame"] table {
+            width: 100%;
+        }
+        [data-testid="stDataFrame"] th[data-testid="stDataFrameColumnHeader"]:not(:first-child) div {
+            text-align: right !important;
+        }
+        [data-testid="stDataFrame"] td:not(:first-child) {
+            text-align: right !important;
+        }
+        [data-testid="stDataFrame"] .stDataFrame tr:hover {
+            background-color: transparent !important;
+        }
+        /* Stile per righe in grassetto */
+        [data-testid="stDataFrame"] tr[class*="row"] td:first-child {
+            font-weight: var(--row-bold-weight, normal);
+        }
+    </style>
+    """, unsafe_allow_html=True)
+
+# --- SOLUZIONE 2: HTML e CSS personalizzato ---
+def display_with_html(df, years, structure):
+    if df.empty:
+        return
+    
+    # Identifica le righe da formattare
+    bold_rows = [item['Voce'] for item in structure if item.get('Grassetto', False)]
+    uppercase_rows = [item['Voce'] for item in structure if item.get('Maiuscolo', False)]
+    
+    # Formatta i numeri
+    df_formatted = df.copy()
+    for year in years:
+        df_formatted[str(year)] = df_formatted[str(year)].apply(
+            lambda x: f"{int(x):,.0f}".replace(",", ".") if str(x).isdigit() else x
+        )
+    
+    # Genera l'HTML della tabella
+    html_table = """
+    <style>
+        .custom-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: Arial, sans-serif;
+            margin: 1em 0;
+        }
+        .custom-table th, .custom-table td {
+            border: 1px solid #e0e0e0;
+            padding: 8px 12px;
+            text-align: left;
+        }
+        .custom-table th {
+            background-color: #f0f0f0;
+            font-weight: bold;
+        }
+        .custom-table td.numeric {
+            text-align: right;
+            font-family: 'Courier New', monospace;
+        }
+        .custom-table tr.bold-row td {
+            font-weight: bold;
+        }
+        .custom-table tr.uppercase-row td {
+            text-transform: uppercase;
+        }
+    </style>
+    <table class="custom-table">
+        <thead>
+            <tr>
+    """
+    
+    # Intestazioni
+    for col in df_formatted.columns:
+        html_table += f"<th>{col}</th>"
+    html_table += "</tr></thead><tbody>"
+    
+    # Righe
+    for _, row in df_formatted.iterrows():
+        row_class = ""
+        if row['Voce'] in bold_rows:
+            row_class += "bold-row "
+        if row['Voce'] in uppercase_rows:
+            row_class += "uppercase-row "
+        
+        html_table += f"<tr class='{row_class.strip()}'>"
+        for i, (col, val) in enumerate(row.items()):
+            cell_class = "numeric" if i > 0 else ""
+            html_table += f"<td class='{cell_class}'>{val}</td>"
+        html_table += "</tr>"
+    
+    html_table += "</tbody></table>"
+    
+    # Visualizza la tabella
+    html(html_table, height=len(df_formatted) * 40 + 100)
 
 # --- Visualizzazione della Tabella Riclassificata ---
 if not df_final_display.empty:
-    column_config_riclass = {
-        "Voce": st.column_config.TextColumn("Voce", help="Voce di Bilancio Riclassificata", width="large"),
-    }
-    for year in years_to_display: 
-        column_config_riclass[str(year)] = st.column_config.TextColumn(str(year), help=f"Valore per l'anno {year}", width="medium")
+    st.markdown("### Visualizzazione Tabellare")
+    
+    # Seleziona la soluzione da usare (commenta/decommenta quella desiderata)
+    use_html_solution = True  # Cambia a False per usare st.dataframe
+    
+    if use_html_solution:
+        display_with_html(df_final_display, years_to_display, report_structure_sp)
+    else:
+        display_with_dataframe(df_final_display, years_to_display)
 
-    st.dataframe(
-        df_final_display, 
-        column_config=column_config_riclass,
-        hide_index=True, 
-        use_container_width=True,
-        key="report_riclassificato_stato_patrimoniale_dataframe"
-    )
-
-    # --- CSS per allineamento a destra degli importi e grassetto ---
-    css_string = """
-    <style>
-    /* Allinea intestazioni degli anni a destra */
-    """
-    for i, year in enumerate(years_to_display):
-        css_string += f"""
-        [data-testid="stDataFrame"] .column-header:has([data-testid="stTextLabel"]:contains("{year}")) div[data-testid="stTextLabel"] {{
-            text-align: right !important;
-        }}
-        """
-        # Allinea le celle degli anni a destra
-        css_string += f"""
-        [data-testid="stDataFrame"] .row-cells > div:nth-child({i+2}) div[data-testid="stCell"] div {{
-            text-align: right !important;
-            justify-content: flex-end !important;
-            padding-right: 12px !important; 
-        }}
-        """
-    css_string += """
-    /* Rimuovi la sottolineatura dal testo dell'intestazione di st.dataframe */
-    .column-header div[data-testid="stTextLabel"] {
-        text_decoration: none !important;
-    }
-    </style>
-    """
-    st.markdown(css_string, unsafe_allow_html=True)
-
-
-    # --- Esportazione Excel e PDF per il Report Riclassificato ---
+    # --- Esportazione Excel e PDF (rimane invariato) ---
     st.markdown("---")
     st.subheader("Esporta Stato Patrimoniale Riclassificato")
 
     df_export_riclassificato_actual = pd.DataFrame()
     export_rows = []
-    for item in report_structure_sp: # Per lo SP
-        # Controlla se la voce deve essere visualizzata per l'export
-        if item.get('Visibile', True) == False: 
+    for item in report_structure_sp:
+        if item.get('Visibile', True) == False:
             continue
 
         row_values = {'Voce': item['Voce']}
         if item.get('Maiuscolo', False):
             row_values['Voce'] = row_values['Voce'].upper()
         
-        for year in years_to_display: 
+        for year in years_to_display:
             val = 0
             if item['Tipo'] == 'Intestazione':
                 row_values[str(year)] = ""
@@ -270,16 +366,16 @@ if not df_final_display.empty:
         export_rows.append(row_values)
     df_export_riclassificato_actual = pd.DataFrame(export_rows)
 
-    df_export_riclassificato_actual.columns = ['Voce'] + [str(year) for year in years_to_display] # Rinomina per export
+    df_export_riclassificato_actual.columns = ['Voce'] + [str(year) for year in years_to_display]
 
     col_excel_riclass, col_pdf_riclass = st.columns(2)
 
     with col_excel_riclass:
         excel_buffer_riclass = io.BytesIO()
         with pd.ExcelWriter(excel_buffer_riclass, engine='xlsxwriter') as writer:
-            df_export_riclassificato_actual.to_excel(writer, index=False, sheet_name='Stato Pat Riclass') # NOME PIU' BREVE
+            df_export_riclassificato_actual.to_excel(writer, index=False, sheet_name='Stato Pat Riclass')
             workbook = writer.book
-            worksheet = writer.sheets['Stato Pat Riclass'] # NOME PIU' BREVE
+            worksheet = writer.sheets['Stato Pat Riclass']
             
             num_format = workbook.add_format({'num_format': '#,##0'})
             for col_idx, year in enumerate(years_to_display):
@@ -287,11 +383,11 @@ if not df_final_display.empty:
 
         excel_buffer_riclass.seek(0)
         st.download_button(
-            label="Esporta Stato Patrimoniale in Excel",
+            label="Scarica Stato Patrimoniale in Excel",
             data=excel_buffer_riclass,
             file_name="stato_patrimoniale_riclassificato.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            help="Esporta lo Stato Patrimoniale riclassificato in un file PDF."
+            help="Esporta lo Stato Patrimoniale riclassificato in un file Excel."
         )
 
     with col_pdf_riclass:
@@ -303,7 +399,7 @@ if not df_final_display.empty:
             if 'h4_bold' not in styles:
                 styles.add(ParagraphStyle(name='h4_bold', parent=styles['h4'], fontName='Helvetica-Bold'))
             if 'h4_right' not in styles:
-                styles.add(ParagraphStyle(name='h4_right', parent=styles['h4'], alignment=2)) # 2 = TA_RIGHT
+                styles.add(ParagraphStyle(name='h4_right', parent=styles['h4'], alignment=2)) 
 
             story = []
 
@@ -323,7 +419,7 @@ if not df_final_display.empty:
 
             for index, row in df_data.iterrows():
                 row_list = []
-                structure_item_found = next((item for item in report_structure_sp if item['Voce'].upper() == row['Voce'].upper() or item['Voce'] == row['Voce']), None) # Per lo SP
+                structure_item_found = next((item for item in report_structure_sp if item['Voce'].upper() == row['Voce'].upper() or item['Voce'] == row['Voce']), None)
                 is_bold_row = structure_item_found.get('Grassetto', False) if structure_item_found else False
                 
                 for col_name in df_data.columns:
@@ -343,7 +439,6 @@ if not df_final_display.empty:
                     else: 
                         row_list.append(Paragraph(formatted_cell_value, styles['Normal']))
                 table_data_pdf.append(row_list)
-
 
             col_widths_pdf = [doc.width / len(df_data.columns)] * len(df_data.columns)
             col_widths_pdf[0] = doc.width * 0.3 
@@ -370,11 +465,14 @@ if not df_final_display.empty:
             buffer.seek(0)
             return buffer
 
-        pdf_buffer_riclass = generate_pdf_riclassified(df_export_riclassificato_actual, "Report Stato Patrimoniale Riclassificato", 
-                                                    f"Cliente: {selected_cliente} | Anno: {selected_anni} | Sezione: {selected_sezione}")
+        pdf_buffer_riclass = generate_pdf_riclassified(
+            df_export_riclassificato_actual, 
+            "Report Stato Patrimoniale Riclassificato", 
+            f"Cliente: {selected_cliente} | Anno: {selected_anni} | Sezione: {selected_sezione}"
+        )
         
         st.download_button(
-            label="Esporta Stato Patrimoniale in PDF",
+            label="Scarica Stato Patrimoniale in PDF",
             data=pdf_buffer_riclass,
             file_name="stato_patrimoniale_riclassificato.pdf",
             mime="application/pdf",
