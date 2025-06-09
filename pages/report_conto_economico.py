@@ -1,5 +1,5 @@
 # pages/report_conto_economico.py - Progetto Business Plan Pro - versione 3.0 - 2025-06-08
-# Obiettivo: Report Conto Economico con rendering riga per riga (st.columns), allineamento garantito.
+# Obiettivo: Conto Economico con rendering riga per riga (st.columns) per allineamento garantito.
 
 import streamlit as st
 import sqlite3
@@ -203,26 +203,23 @@ else: # Se df_full_data è vuoto, df_final_display deve essere inizializzato com
 
 # --- Visualizzazione della Tabella Riclassificata ---
 if not df_final_display.empty:
-    column_config_riclass = {
-        "Voce": st.column_config.TextColumn("Voce", help="Voce di Bilancio Riclassificata", width="large"),
-    }
-    for year in years_to_display: 
-        column_config_riclass[str(year)] = st.column_config.TextColumn(str(year), help=f"Valore per l'anno {year}", width="medium")
+    # --- NON USARE PIU' column_config QUI ---
+    # Useremo df_final_display direttamente con st.dataframe
+    # E applicheremo stile per grassetto/allineamento via CSS o stile pandas.
 
     st.dataframe(
         df_final_display, 
-        column_config=column_config_riclass,
         hide_index=True, 
         use_container_width=True,
         key="report_riclassificato_conto_economico_dataframe"
     )
 
     # --- CSS per allineamento a destra degli importi e grassetto ---
-    # CORREZIONE: Ho incluso qui il CSS per allineamento e maiuscole/minuscole
-    # Questo è il CSS per l'allineamento degli importi.
+    # Questo CSS è aggressivo e dovrebbe forzare l'allineamento.
+    # Non è più specifico per column_config, ma per le celle del dataframe.
     css_string = """
     <style>
-    /* Allinea intestazioni degli anni a destra */
+    /* Allinea intestazioni degli anni a destra (basato su testo dell'header) */
     """
     for i, year in enumerate(years_to_display):
         css_string += f"""
@@ -230,157 +227,213 @@ if not df_final_display.empty:
             text-align: right !important;
         }}
         """
-        # Allinea le celle degli anni a destra
-        css_string += f"""
-        [data-testid="stDataFrame"] .row-cells > div:nth-child({i+2}) div[data-testid="stCell"] div {{
-            text-align: right !important;
-            justify-content: flex-end !important;
-            padding-right: 12px !important; 
-        }}
-        """
+    # Questo selettore mira alle celle di dati del corpo della tabella
+    # [data-testid="stDataFrame"] .row-cells > div:nth-child({i+2}) div[data-testid="stCell"] div
+    # Prova un selettore più generico per allineare a destra le celle numeriche.
+    # Non usare nth-child se non strettamente necessario per evitare problemi con Streamlit.
+    # Applicheremo lo stile su ogni cella tramite Pandas Styler per il grassetto.
     css_string += """
     /* Rimuovi la sottolineatura dal testo dell'intestazione di st.dataframe */
     .column-header div[data-testid="stTextLabel"] {
-        text_decoration: none !important;
+        text-decoration: none !important;
     }
     </style>
     """
     st.markdown(css_string, unsafe_allow_html=True)
 
-
-    # --- Esportazione Excel e PDF per il Report Riclassificato ---
-    st.markdown("---")
-    st.subheader("Esporta Conto Economico Riclassificato")
-
-    df_export_riclassificato_actual = pd.DataFrame() 
-    export_rows = []
-    for item in report_structure_ce: 
-        row_values = {'Voce': item['Voce']}
-        if item.get('Maiuscolo', False):
-            row_values['Voce'] = row_values['Voce'].upper()
+    # --- CORREZIONE: Applicare stile grassetto con Pandas Styler ---
+    # Per il grassetto e l'allineamento degli importi:
+    # Creiamo una funzione di stile per Pandas
+    def apply_report_style(df_display, report_struct, years):
+        df_styled = df_display.copy()
         
-        for year in years_to_display: 
-            val = 0
-            if item['Tipo'] == 'Intestazione':
-                row_values[str(year)] = ""
-            elif item['Tipo'] == 'Dettaglio':
-                val = values_by_year[year].get(item['ID_RI'], 0)
-                row_values[str(year)] = val
-            elif item['Tipo'] == 'Calcolo':
-                val = values_by_year[year].get(item['Voce'], 0)
-                row_values[str(year)] = val
-        export_rows.append(row_values)
-    df_export_riclassificato_actual = pd.DataFrame(export_rows)
+        # Dizionario per lookup veloce dei flags di stile per voce
+        style_flags = {item['Voce']: {'Grassetto': item.get('Grassetto', False), 'Maiuscolo': item.get('Maiuscolo', False)} for item in report_struct}
 
-    df_export_riclassificato_actual.columns = ['Voce'] + [str(year) for year in years_to_display] 
-
-    col_excel_riclass, col_pdf_riclass = st.columns(2)
-
-    with col_excel_riclass:
-        excel_buffer_riclass = io.BytesIO()
-        with pd.ExcelWriter(excel_buffer_riclass, engine='xlsxwriter') as writer:
-            df_export_riclassificato_actual.to_excel(writer, index=False, sheet_name='Conto Eco Riclass') 
-            workbook = writer.book
-            worksheet = writer.sheets['Conto Eco Riclass'] 
+        # Applica formattazione e stile
+        def style_cells(row):
+            styles = [''] * len(row)
+            voce_name_original = row['Voce'] # Nome originale della voce
             
-            num_format = workbook.add_format({'num_format': '#,##0'})
-            for col_idx, year in enumerate(years_to_display): 
-                worksheet.set_column(col_idx + 1, col_idx + 1, None, num_format) 
-
-        excel_buffer_riclass.seek(0)
-        st.download_button(
-            label="Esporta Conto Economico in PDF",
-            data=excel_buffer_riclass,
-            file_name="conto_economico_riclassificato.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            help="Esporta il Conto Economico riclassificato in un file Excel."
+            # Recupera i flag di stile per la riga corrente
+            current_flags = style_flags.get(voce_name_original.upper() if row['Maiuscolo'] else voce_name_original, {'Grassetto': False})
+            is_bold = current_flags['Grassetto']
+            
+            for col_idx, col_name in enumerate(df_display.columns):
+                if col_name == 'Voce':
+                    # Allineamento a sinistra per la Voce
+                    if is_bold:
+                        styles[col_idx] = 'font-weight: bold;'
+                else: # Colonne degli anni (valori numerici)
+                    # Allineamento a destra
+                    styles[col_idx] = 'text-align: right;'
+                    if is_bold:
+                        styles[col_idx] += ' font-weight: bold;'
+            return styles
+        
+        # Applica lo stile
+        # Utilizza l'oggetto Styler di Pandas
+        # Questo è più robusto per lo stile a livello di cella.
+        # Streamlit supporta Pandas Styler per st.dataframe.
+        
+        # Crea un DataFrame per l'applicazione dello stile
+        # Le colonne numeriche sono già stringhe formattate.
+        # df_display deve essere il DataFrame che Styler userà
+        # Contiene già 'Voce' e gli anni come stringhe formattate.
+        
+        # Rimuovi l'indice e usa i nomi delle colonne visualizzate
+        df_for_styler = df_display.set_index('Voce').copy()
+        
+        st.dataframe(
+            df_for_styler.style.apply(style_cells, axis=1),
+            use_container_width=True,
+            key="report_riclassificato_styled_dataframe"
         )
+        return
 
-    with col_pdf_riclass:
-        def generate_pdf_riclassified(df_data, title, filters_applied): 
-            buffer = io.BytesIO()
-            doc = SimpleDocTemplate(buffer, pagesize=landscape(A4)) 
-            styles = getSampleStyleSheet()
+    # Invece di st.dataframe(df_final_display, ...), chiama la funzione di stile
+    apply_report_style(df_final_display, report_structure_ce, years_to_display)
+
+else:
+    st.info("Nessun dato trovato per la riclassificazione con i filtri selezionati.")
+    
+
+# --- Esportazione Excel e PDF per il Report Riclassificato ---
+st.markdown("---")
+st.subheader("Esporta Conto Economico Riclassificato")
+
+# df_export_riclassificato_actual deve usare i valori numerici originali per Excel/PDF
+# e la formattazione di Maiuscole/Minuscole
+df_export_riclassificato_actual = pd.DataFrame() # Inizializza qui
+export_rows = []
+for item in report_structure_ce: # Per il CE
+    row_values = {'Voce': item['Voce']}
+    if item.get('Maiuscolo', False):
+        row_values['Voce'] = row_values['Voce'].upper()
+    
+    for year in years_to_display: 
+        val = 0
+        if item['Tipo'] == 'Intestazione':
+            row_values[str(year)] = ""
+        elif item['Tipo'] == 'Dettaglio':
+            val = values_by_year[year].get(item['ID_RI'], 0)
+            row_values[str(year)] = val
+        elif item['Tipo'] == 'Calcolo':
+            val = values_by_year[year].get(item['Voce'], 0)
+            row_values[str(year)] = val
+    export_rows.append(row_values)
+df_export_riclassificato_actual = pd.DataFrame(export_rows)
+
+df_export_riclassificato_actual.columns = ['Voce'] + [str(year) for year in years_to_display] 
+
+col_excel_riclass, col_pdf_riclass = st.columns(2)
+
+with col_excel_riclass:
+    excel_buffer_riclass = io.BytesIO()
+    with pd.ExcelWriter(excel_buffer_riclass, engine='xlsxwriter') as writer:
+        df_export_riclassificato_actual.to_excel(writer, index=False, sheet_name='Conto Eco Riclass') 
+        workbook = writer.book
+        worksheet = writer.sheets['Conto Eco Riclass'] 
+        
+        num_format = workbook.add_format({'num_format': '#,##0'})
+        for col_idx, year in enumerate(years_to_display): 
+            worksheet.set_column(col_idx + 1, col_idx + 1, None, num_format) 
+
+    excel_buffer_riclass.seek(0)
+    st.download_button(
+        label="Esporta Conto Economico in PDF",
+        data=excel_buffer_riclass,
+        file_name="conto_economico_riclassificato.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        help="Esporta il Conto Economico riclassificato in un file Excel."
+    )
+
+with col_pdf_riclass:
+    def generate_pdf_riclassified(df_data, title, filters_applied): 
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=landscape(A4)) 
+        styles = getSampleStyleSheet()
+        
+        if 'h4_bold' not in styles:
+            styles.add(ParagraphStyle(name='h4_bold', parent=styles['h4'], fontName='Helvetica-Bold'))
+        if 'h4_right' not in styles:
+            styles.add(ParagraphStyle(name='h4_right', parent=styles['h4'], alignment=2)) 
+
+        story = []
+
+        story.append(Paragraph(title, styles['h2']))
+        story.append(Spacer(1, 0.2 * inch))
+        story.append(Paragraph(f"<b>Filtri applicati:</b> {filters_applied}", styles['Normal']))
+        story.append(Spacer(1, 0.2 * inch))
+        
+        table_data_pdf = []
+        header_row_pdf = []
+        for col in df_data.columns:
+            if col == 'Voce':
+                header_row_pdf.append(Paragraph(col, styles['h4_bold'])) 
+            else:
+                header_row_pdf.append(Paragraph(col, styles['h4_right'])) 
+        table_data_pdf.append(header_row_pdf)
+
+        for index, row in df_data.iterrows():
+            row_list = []
+            # Trova la voce corrispondente in report_structure per i flag Grassetto/Maiuscolo
+            structure_item_found = next((item for item in report_structure_ce if item['Voce'].upper() == row['Voce'].upper() or item['Voce'] == row['Voce']), None) 
+            is_bold_row = structure_item_found.get('Grassetto', False) if structure_item_found else False
             
-            if 'h4_bold' not in styles:
-                styles.add(ParagraphStyle(name='h4_bold', parent=styles['h4'], fontName='Helvetica-Bold'))
-            if 'h4_right' not in styles:
-                styles.add(ParagraphStyle(name='h4_right', parent=styles['h4'], alignment=2)) 
-
-            story = []
-
-            story.append(Paragraph(title, styles['h2']))
-            story.append(Spacer(1, 0.2 * inch))
-            story.append(Paragraph(f"<b>Filtri applicati:</b> {filters_applied}", styles['Normal']))
-            story.append(Spacer(1, 0.2 * inch))
-            
-            table_data_pdf = []
-            header_row_pdf = []
-            for col in df_data.columns:
-                if col == 'Voce':
-                    header_row_pdf.append(Paragraph(col, styles['h4_bold'])) 
-                else:
-                    header_row_pdf.append(Paragraph(col, styles['h4_right'])) 
-            table_data_pdf.append(header_row_pdf)
-
-            for index, row in df_data.iterrows():
-                row_list = []
-                structure_item_found = next((item for item in report_structure_ce if item['Voce'].upper() == row['Voce'].upper() or item['Voce'] == row['Voce']), None) 
-                is_bold_row = structure_item_found.get('Grassetto', False) if structure_item_found else False
+            for col_name in df_data.columns:
+                cell_value = row[col_name]
+                formatted_cell_value = str(cell_value) 
                 
-                for col_name in df_data.columns:
-                    cell_value = row[col_name]
-                    formatted_cell_value = str(cell_value) 
-                    
-                    if col_name != 'Voce': 
-                        try:
-                            formatted_cell_value = f"{int(cell_value):,}".replace(",", "X").replace(".", ",").replace("X", ".")
-                        except (ValueError, TypeError):
-                            pass 
-                    
-                    if is_bold_row:
-                        row_list.append(Paragraph(formatted_cell_value, styles['h4_bold']))
-                    elif col_name != 'Voce': 
-                        row_list.append(Paragraph(formatted_cell_value, styles['h4_right'])) 
-                    else: 
-                        row_list.append(Paragraph(formatted_cell_value, styles['Normal']))
-                table_data_pdf.append(row_list)
+                if col_name != 'Voce': 
+                    try:
+                        formatted_cell_value = f"{int(cell_value):,}".replace(",", "X").replace(".", ",").replace("X", ".")
+                    except (ValueError, TypeError):
+                        pass 
+                
+                if is_bold_row:
+                    row_list.append(Paragraph(formatted_cell_value, styles['h4_bold']))
+                elif col_name != 'Voce': 
+                    row_list.append(Paragraph(formatted_cell_value, styles['h4_right'])) 
+                else: 
+                    row_list.append(Paragraph(formatted_cell_value, styles['Normal']))
+            table_data_pdf.append(row_list)
 
 
-            col_widths_pdf = [doc.width / len(df_data.columns)] * len(df_data.columns)
-            col_widths_pdf[0] = doc.width * 0.3 
-            remaining_width = doc.width - col_widths_pdf[0]
-            for i in range(1, len(col_widths_pdf)):
-                col_widths_pdf[i] = remaining_width / (len(col_widths_pdf) - 1)
+        col_widths_pdf = [doc.width / len(df_data.columns)] * len(df_data.columns)
+        col_widths_pdf[0] = doc.width * 0.3 
+        remaining_width = doc.width - col_widths_pdf[0]
+        for i in range(1, len(col_widths_pdf)):
+            col_widths_pdf[i] = remaining_width / (len(col_widths_pdf) - 1)
 
-            table_style = TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
-                ('ALIGN', (0, 0), (0, -1), 'LEFT'), 
-                ('ALIGN', (1, 0), (-1, -1), 'RIGHT'), 
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'), 
-                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-                ('BACKGROUND', (0, 1), (-1, -1), colors.white),
-                ('GRID', (0, 0), (-1, -1), 0.25, colors.white), 
-            ])
-            
-            table = Table(table_data_pdf, colWidths=col_widths_pdf)
-            table.setStyle(table_style)
-            story.append(table)
-
-            doc.build(story)
-            buffer.seek(0)
-            return buffer
-
-        pdf_buffer_riclass = generate_pdf_riclassified(df_export_riclassificato_actual, "Report Conto Economico Riclassificato", 
-                                                    f"Cliente: {selected_cliente} | Anno: {selected_anni} | Sezione: {selected_sezione}")
+        table_style = TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+            ('ALIGN', (0, 0), (0, -1), 'LEFT'), 
+            ('ALIGN', (1, 0), (-1, -1), 'RIGHT'), 
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'), 
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+            ('GRID', (0, 0), (-1, -1), 0.25, colors.white), 
+        ])
         
-        st.download_button(
-            label="Esporta Conto Economico in PDF",
-            data=pdf_buffer_riclass,
-            file_name="conto_economico_riclassificato.pdf",
-            mime="application/pdf",
-            help="Esporta il Conto Economico riclassificato in un file PDF."
-        )
+        table = Table(table_data_pdf, colWidths=col_widths_pdf)
+        table.setStyle(table_style)
+        story.append(table)
+
+        doc.build(story)
+        buffer.seek(0)
+        return buffer
+
+    pdf_buffer_riclass = generate_pdf_riclassified(df_export_riclassificato_actual, "Report Conto Economico Riclassificato", 
+                                                f"Cliente: {selected_cliente} | Anno: {selected_anni} | Sezione: {selected_sezione}")
+    
+    st.download_button(
+        label="Esporta Conto Economico in PDF",
+        data=pdf_buffer_riclass,
+        file_name="conto_economico_riclassificato.pdf",
+        mime="application/pdf",
+        help="Esporta il Conto Economico riclassificato in un file PDF."
+    )
 else:
     st.info("Nessun dato da esportare.")
