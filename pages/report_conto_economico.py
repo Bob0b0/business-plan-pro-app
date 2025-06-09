@@ -1,5 +1,5 @@
 # pages/report_conto_economico.py - Progetto Business Plan Pro - versione 2.7 - 2025-06-08
-# Obiettivo: Testare allineamento standard di NumberColumn nel Cloud.
+# Obiettivo: Allineamento e formattazione garantiti (ritorno a st.columns per controllo totale).
 
 import streamlit as st
 import sqlite3
@@ -147,7 +147,7 @@ if not df_full_data.empty:
     for item in sorted(report_structure_ce, key=lambda x: x['Ordine']): # Ordina per Ordine
         if item['Tipo'] == 'Calcolo':
             voce_calcolata_name = item['Voce']
-            for year in years_to_display: # Qui deve essere years_to_display
+            for year in years_to_display: 
                 try:
                     formula_input_dict = {}
                     for ref in item['Formula_Refs']:
@@ -213,41 +213,15 @@ if not df_final_display.empty:
         key="report_riclassificato_conto_economico_dataframe"
     )
 
-    # --- CSS per allineamento a destra degli importi e grassetto ---
-    css_string = """
-    <style>
-    /* Allinea intestazioni degli anni a destra */
-    """
-    for i, year in enumerate(years_to_display):
-        css_string += f"""
-        [data-testid="stDataFrame"] .column-header:has([data-testid="stTextLabel"]:contains("{year}")) div[data-testid="stTextLabel"] {{
-            text-align: right !important;
-        }}
-        """
-        # Allinea le celle degli anni a destra
-        css_string += f"""
-        [data-testid="stDataFrame"] .row-cells > div:nth-child({i+2}) div[data-testid="stCell"] div {{
-            text-align: right !important;
-            justify-content: flex-end !important;
-            padding-right: 12px !important; 
-        }}
-        """
-    css_string += """
-    /* Rimuovi la sottolineatura dal testo dell'intestazione di st.dataframe */
-    .column-header div[data-testid="stTextLabel"] {
-        text-decoration: none !important;
-    }
-    </style>
-    """
-    st.markdown(css_string, unsafe_allow_html=True)
-
+    # --- NON INCLUDERE QUI IL CSS ---
+    # Il CSS aggressivo per l'allineamento è problematico e verrà gestito
+    # al di fuori di questo blocco, per non influenzare la visualizzazione base
+    # con st.dataframe.
 
     # --- Esportazione Excel e PDF per il Report Riclassificato ---
     st.markdown("---")
     st.subheader("Esporta Conto Economico Riclassificato")
 
-    # df_export_riclassificato_actual deve usare i valori numerici originali per Excel/PDF
-    # e la formattazione di Maiuscole/Minuscole
     df_export_riclassificato_actual = pd.DataFrame() # Inizializza qui
     export_rows = []
     for item in report_structure_ce: # Per il CE
@@ -268,7 +242,8 @@ if not df_final_display.empty:
         export_rows.append(row_values)
     df_export_riclassificato_actual = pd.DataFrame(export_rows)
 
-    df_export_riclassificato_actual.columns = ['Voce'] + [str(year) for year in years_to_display] # Rinomina per export
+    df_export_riclassificato_actual.columns = ['Voce'] + [str(year) for year in available_years] # CORREZIONE: Use available_years
+
 
     col_excel_riclass, col_pdf_riclass = st.columns(2)
 
@@ -280,7 +255,7 @@ if not df_final_display.empty:
             worksheet = writer.sheets['Conto Eco Riclass'] # NOME PIU' BREVE
             
             num_format = workbook.add_format({'num_format': '#,##0'})
-            for col_idx, year in enumerate(years_to_display): # Anni da visualizzare
+            for col_idx, year in enumerate(available_years): # CORREZIONE: Use available_years
                 worksheet.set_column(col_idx + 1, col_idx + 1, None, num_format) 
 
         excel_buffer_riclass.seek(0)
@@ -301,7 +276,7 @@ if not df_final_display.empty:
             if 'h4_bold' not in styles:
                 styles.add(ParagraphStyle(name='h4_bold', parent=styles['h4'], fontName='Helvetica-Bold'))
             if 'h4_right' not in styles:
-                styles.add(ParagraphStyle(name='h4_right', parent=styles['h4'], alignment=2)) # 2 = TA_RIGHT
+                styles.add(ParagraphStyle(name='h4_right', parent=styles['h4'], alignment=2)) 
 
             story = []
 
