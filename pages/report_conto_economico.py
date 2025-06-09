@@ -1,5 +1,5 @@
-# pages/report_conto_economico.py - Progetto Business Plan Pro - versione 3.1 - 2025-06-09
-# Obiettivo: Conto Economico con allineamento e formattazione garantiti per la visualizzazione.
+# pages/report_conto_economico.py - Progetto Business Plan Pro - versione 3.2 - 2025-06-09
+# Basato sulla TUA versione 3.0 funzionante, con soluzione esperto per visualizzazione tabella.
 
 import streamlit as st
 import sqlite3
@@ -138,13 +138,13 @@ if not df_full_data.empty:
     for year in years_to_display:
         for item in report_structure_ce: # Per il CE
             if item['Tipo'] == 'Dettaglio':
-                # CORREZIONE: Assicurati che il .get() abbia il valore predefinito
                 if year in df_pivot_by_id_ri_year.columns and item['ID_RI'] in df_pivot_by_id_ri_year.index:
                     value = df_pivot_by_id_ri_year.loc[item['ID_RI'], year]
                     values_by_year[year][item['ID_RI']] = value
                 else:
                     value = 0 
-                values_by_year[year][item['ID_RI']] = value # CORREZIONE: Chiudi la parentesi qui se non già fatto
+                values_by_year[year][item['ID_RI']] = value 
+
 
     # Risolvere le formule di calcolo (iterando sull'ordine)
     for item in sorted(report_structure_ce, key=lambda x: x['Ordine']): # Ordina per Ordine
@@ -157,7 +157,7 @@ if not df_full_data.empty:
                         if ref in values_by_year[year]: 
                             formula_input_dict[ref] = values_by_year[year][ref]
                         elif ref in id_ri_to_ricla_name: 
-                             formula_input_dict[ref] = values_by_year[year].get(ref, 0) # CORREZIONE: Assicurati che .get() sia chiuso
+                             formula_input_dict[ref] = values_by_year[year].get(ref, 0)
                         else:
                             formula_input_dict[ref] = 0 
                         
@@ -233,6 +233,7 @@ if not df_final_display.empty:
         for i, year_col in enumerate(years_to_display):
             with cols[i+1]:
                 # Allineamento a destra e formattazione per gli importi
+                # Valore numerico formattato come stringa
                 val_to_display = row[str(year_col)]
                 if row['Grassetto']: # Flag Grassetto
                     st.markdown(f"<div style='text-align: right;'><b>{val_to_display}</b></div>", unsafe_allow_html=True)
