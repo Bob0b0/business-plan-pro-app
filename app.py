@@ -1,4 +1,4 @@
-# app.py - Progetto Business Plan Pro - versione 1.1 - 2025-06-08
+# app.py - Progetto Business Plan Pro - versione 1.2 - 2025-06-10
 import streamlit as st
 import sqlite3
 import pandas as pd
@@ -18,4 +18,5 @@ st.markdown("- **Visualizza:** Esplora i dati esistenti con filtri interattivi."
 st.markdown("- **Modifica:** Aggiorna o elimina record specifici.")
 st.markdown("- **Report Conto Economico:** Visualizza il bilancio riclassificato del Conto Economico.")
 st.markdown("- **Report Stato Patrimoniale:** Visualizza il bilancio riclassificato dello Stato Patrimoniale.")
+st.markdown("- **Report Flussi Finanziari:** Analizza i flussi di cassa aziendali.") # NUOVA RIGA
 st.markdown("I filtri globali nella sidebar a sinistra si applicano a tutte le pagine che li utilizzano.")

@@ -1,0 +1,84 @@
+
+Verona, 10 giugno 2025 ore 16:39
+Questo prompt serve come promemoria dettagliato e panoramica dell'app "Business Plan Pro" sviluppata finora. Può essere usato per riprendere il lavoro o per fornire contesto a un altro esperto.
+
+---
+
+**1. Obiettivo Generale dell'App:**
+L'app "Business Plan Pro" è uno strumento basato su Streamlit per la gestione, l'analisi e la previsione di dati finanziari aziendali, con un focus sulla riclassificazione di bilancio e la costruzione di business plan pluriennale.
+
+---
+
+**2. Struttura del Database (SQLite: `business_plan_pro.db`):**
+Il database è il cuore dei dati e si trova nella stessa cartella principale dell'app.
+* **`righe` (Tabella dati transazionali):** Contiene i dati di bilancio grezzi.
+    * `ID` (INTEGER)
+    * `cliente` (TEXT)
+    * `anno` (INTEGER)
+    * `Id_co` (TEXT) - Chiave esterna verso `conti.id_co`
+    * `importo` (INTEGER)
+* **`conti` (Tabella piano dei conti):** Definisce il piano dei conti aziendale e i collegamenti alla riclassificazione.
+    * `id_co` (TEXT) - Chiave primaria
+    * `Ord` (INTEGER)
+    * `Conto` (TEXT)
+    * `Parte` (TEXT)
+    * `Sezione` (TEXT)
+    * `ID_RI` (TEXT) - Chiave esterna verso `ricla.ID_RI`
+    * `Unnamed: 6` (TEXT)
+* **`ricla` (Tabella riclassificazione):** Definisce le voci di riclassificazione.
+    * `ID_RI` (TEXT) - Chiave primaria
+    * `Ricla` (TEXT)
+    * *(Nota: Voci come `RI31` (Liquidità) e `RI33` (Banche passive) sono usate per calcolare la PFN.)*
+
+---
+
+**3. Architettura dell'App (Streamlit Multi-Page):**
+L'app è strutturata come un'applicazione multi-pagina di Streamlit.
+
+* **`business_plan_pro/` (Cartella principale):**
+    * `app.py`: Punto di ingresso principale. Configura la pagina, inizializza i filtri globali (`sidebar_filtri.py`), e mostra la pagina "Home".
+    * `sidebar_filtri.py`: Modulo che definisce e visualizza i filtri "Cliente", "Anni" (multiselect), "Sezione" nella sidebar. I valori sono salvati in `st.session_state`.
+    * `financial_model.py`: **IL CUORE DEL MODELLO DI CALCOLO**. Contiene:
+        * La funzione `format_number` (per formattazione numerica visiva).
+        * Le definizioni complete delle strutture dei report (`report_structure_ce`, `report_structure_sp`, `report_structure_ff`) con tutte le voci di dettaglio e le formule di calcolo (basate sui `RIxx` e su altri calcoli intermedi quando necessario, per robustezza e manutenibilità).
+        * La funzione centrale `calculate_all_reports(df_full_data, years_to_display, ...)` che:
+            * Prende i dati grezzi dal DB (`df_full_data`).
+            * Esegue i pivot e i lookup iniziali.
+            * Calcola in sequenza **tutti i valori per TUTTE le voci di tutti i report (CE, SP, Flussi)** per tutti gli anni richiesti, risolvendo le dipendenze in un flusso ottimizzato.
+            * Restituisce un dizionario contenente i DataFrame preparati per la visualizzazione (`'ce'`, `'sp'`, `'ff'`) e per l'esportazione (`'ce_export'`, `'sp_export'`, `'ff_export'`).
+            * Gestisce la logica inter-anno (`_current`, `_previous`) per i Flussi Finanziari e PFN.
+    * `business_plan_pro.db`: Il file del database.
+    * `requirements.txt`: Elenca le dipendenze Python (`streamlit`, `pandas`, `reportlab`, `xlsxwriter`).
+* **`business_plan_pro/pages/` (Cartella Pagine):**
+    * `inserisci.py`: Pagina per l'inserimento di nuovi record nella tabella `righe`. Popola menu a discesa per "Cliente", "Anno", "Conto". L'ID è auto-generato.
+    * `visualizza.py`: Pagina per visualizzare i record. Applica i filtri globali. Mostra una tabella riga per riga con `st.columns` e `st.markdown`. Include un pulsante "Matita" per ogni riga che reindirizza a `modifica.py` con l'ID pre-selezionato. Funzionalità di esportazione Excel e PDF.
+    * `modifica.py`: Pagina per modificare o cancellare un record. Carica un record basandosi sull'ID passato da `visualizza.py` o selezionato da un menu a discesa. Reindirizza a `visualizza.py` dopo l'operazione.
+    * `report_conto_economico.py`: Pagina per il report del Conto Economico Riclassificato.
+        * Applica i filtri globali (Cliente, Anni).
+        * Chiama `financial_model.calculate_all_reports` per ottenere il DataFrame `'ce'` e `'ce_export'`.
+        * **Visualizzazione:** Utilizza `st.components.v1.html` per un rendering HTML manuale della tabella, consentendo allineamento a destra, formattazione migliaia (punto), e stili (grassetto, maiuscolo/minuscolo) **come desiderato**.
+        * Funzionalità di esportazione Excel e PDF (con formattazione avanzata) **che funzionano perfettamente**.
+    * `report_stato_patrimoniale.py`: Pagina per il report dello Stato Patrimoniale Gestionale.
+        * Applica i filtri globali (Cliente, Anni).
+        * Chiama `financial_model.calculate_all_reports` per ottenere il DataFrame `'sp'` e `'sp_export'`.
+        * **Visualizzazione:** Utilizza `st.components.v1.html` per un rendering HTML manuale della tabella, consentendo allineamento a destra, formattazione migliaia (punto), e stili (grassetto, maiuscolo/minuscolo) **come desiderato**.
+        * Funzionalità di esportazione Excel e PDF (con formattazione avanzata) **che funzionano perfettamente**.
+    * `report_flussi_finanziari.py`: Pagina per il report dei Flussi Finanziari. (Struttura e logica simili. Chiama `financial_model.calculate_all_reports` per ottenere il DataFrame `'ff'` e `'ff_export'`). **Attualmente, questa pagina funziona, ma le voci calcolate (FLUSSO MONETARIO OPERATIVO, FLUSSO MONETARIO NETTO, Variazione) risultavano zero o non correttamente calcolate in versioni precedenti, e sono state corrette all'interno di `financial_model.py`.**
+
+---
+
+**4. Stato Attuale e Prossimi Sviluppi:**
+
+* **App Funzionante e Stabile:** L'app è deployata su Streamlit Community Cloud. Tutte le pagine di inserimento, visualizzazione e i report riclassificati (Conto Economico, Stato Patrimoniale, Flussi Finanziari) sono **funzionanti, formattati correttamente e con esportazioni eccellenti in PDF ed Excel**.
+* **Obiettivo Raggiunto:** La fase di riclassificazione di bilancio e la creazione dei report è stata completata con successo.
+
+**Prossimi Sviluppi:**
+
+1.  **Costruzione del Business Plan Previsionale:** Questo sarà il prossimo grande modulo. Prevederà:
+    * Gestione dell'orizzonte temporale (da 1 a 20 anni).
+    * Interfaccia utente per l'inserimento interattivo di regole, assunzioni e formule (es. % di crescita dei ricavi, % incidenza costi, giorni di dilazione clienti/fornitori).
+    * Calcolo dei prospetti previsionali (CE, SP, Flussi) basati su queste assunzioni.
+2.  **Output Avanzato e Dashboard (KPI & Grafici):**
+    * Definizione e visualizzazione di Key Performance Indicators (KPI) derivati dal modello.
+    * Generazione di grafici (linee, barre, ecc.) per visualizzare andamenti e confronti nel tempo.
+    * Creazione di una dashboard di sintesi.
