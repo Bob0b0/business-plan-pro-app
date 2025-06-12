@@ -1,11 +1,12 @@
-# pages/report_flussi_finanziari.py - Progetto Business Plan Pro - versione 1.4 - 2025-06-10
-# Versione finale pulita - debug rimosso
+# pages/report_flussi_finanziari.py - Progetto Business Plan Pro - versione 4.1 - 2025-06-10
+# Aggiunto: Grafico a Cascata (Waterfall Chart) per visualizzazione flussi finanziari
 
 import streamlit as st
 import sqlite3
 import pandas as pd
 import sidebar_filtri 
 import io
+import plotly.graph_objects as go
 from reportlab.lib.pagesizes import A4, landscape 
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib import colors
@@ -28,7 +29,7 @@ selected_anni = st.session_state.selected_anni
 selected_sezione = st.session_state.selected_sezione 
 
 # --- Titolo e Intestazione Report ---
-st.title("📊 Report Flussi Finanziari")
+st.title("💰 Report Flussi di Cassa")
 st.markdown(f"**Filtri applicati:** Cliente: **{selected_cliente}** | Anni: **{', '.join(selected_anni) if selected_anni else 'Tutti'}**")
 st.markdown("---") 
 
@@ -62,8 +63,6 @@ else:
 if not years_to_display or len(years_to_display) < 2:
     st.info("Seleziona almeno due anni consecutivi o un anno per vedere il raffronto con il precedente, per il calcolo dei flussi.")
     st.stop() 
-
-
 
 # Connessione al database e caricamento dati grezzi
 conn = None
@@ -105,10 +104,7 @@ if df_full_data.empty:
     st.error("Nessun dato trovato per gli anni selezionati. Verifica che ci siano dati nel database per questi anni.")
     st.stop()
 
-
-
 # --- CHIAMATA AL MODELLO FINANZIARIO CENTRALE ---
-
 try:
     all_calculated_reports = financial_model.calculate_all_reports(
         df_full_data, 
@@ -224,6 +220,172 @@ if not df_final_display.empty:
         st.error(f"Colonna '{current_year_for_display}' non trovata nel DataFrame dei flussi. Colonne disponibili: {list(df_final_display.columns)}")
     else:
         display_with_html_flows(df_final_display, current_year_for_display, financial_model.report_structure_ff)
+
+    # --- Grafico a Cascata (Waterfall Chart) ---
+    st.markdown("---")
+    st.markdown("### 📊 Grafico a Cascata - Conversione EBITDA in Flusso Monetario")
+    
+    def create_waterfall_chart(df_flussi, year_col):
+        """Crea un grafico a cascata per i flussi finanziari usando Plotly"""
+        if df_flussi.empty:
+            st.info("Nessun dato disponibile per il grafico a cascata.")
+            return
+        
+        if year_col not in df_flussi.columns:
+            st.warning(f"Anno {year_col} non trovato nei dati.")
+            return
+        
+        # Estrai i valori per il grafico a cascata dall'EBITDA al flusso netto
+        ebitda = 0
+        variazioni_ccn = 0
+        variazione_tfr = 0
+        investimenti = 0
+        gestione_finanziaria = 0
+        imposte = 0
+        flusso_netto = 0
+        
+        # Funzione per convertire valori formattati
+        def parse_value(val):
+            if pd.isna(val) or val == 0:
+                return 0
+            if isinstance(val, (int, float)):
+                return float(val)
+            if isinstance(val, str):
+                try:
+                    # Rimuovi formattazione: punti, euro, spazi
+                    clean_val = val.replace('.', '').replace('€', '').replace(' ', '').replace(',', '.')
+                    return float(clean_val) if clean_val else 0
+                except:
+                    return 0
+            return 0
+        
+        for _, row in df_flussi.iterrows():
+            voce = row['Voce'].strip()
+            valore = parse_value(row[year_col])
+            voce_upper = voce.upper()
+            
+            # Identifica le componenti del flusso
+            if 'EBITDA' in voce_upper:
+                ebitda = valore
+            elif 'VARIAZIONI CCN' in voce_upper or 'VARIAZIONE CCN' in voce_upper:
+                variazioni_ccn = valore
+            elif 'TFR' in voce_upper and 'VARIAZIONE' in voce_upper:
+                variazione_tfr = valore
+            elif 'INVESTIMENTO' in voce_upper:
+                investimenti = valore
+            elif 'GESTIONE FINANZIARIA' in voce_upper:
+                gestione_finanziaria = valore
+            elif 'IMPOSTE' in voce_upper:
+                imposte = valore
+            elif 'FLUSSO MONETARIO NETTO' in voce_upper or 'FLUSSO NETTO' in voce_upper:
+                flusso_netto = valore
+        
+        # Verifica che abbiamo trovato almeno EBITDA
+        if ebitda == 0:
+            st.warning("⚠️ Non è stato trovato l'EBITDA. Impossibile creare il grafico a cascata.")
+            return
+        
+        # Crea il grafico a cascata dall'EBITDA al flusso netto
+        labels = ["EBITDA"]
+        values = [ebitda]
+        measures = ["absolute"]
+        
+        # Aggiungi le componenti se presenti
+        if variazioni_ccn != 0:
+            labels.append("Variazioni CCN")
+            values.append(variazioni_ccn)
+            measures.append("relative")
+        
+        if variazione_tfr != 0:
+            labels.append("Variazione TFR")
+            values.append(variazione_tfr)
+            measures.append("relative")
+        
+        if investimenti != 0:
+            labels.append("Investimenti")
+            values.append(investimenti)
+            measures.append("relative")
+        
+        if gestione_finanziaria != 0:
+            labels.append("Gestione Finanziaria")
+            values.append(gestione_finanziaria)
+            measures.append("relative")
+        
+        if imposte != 0:
+            labels.append("Imposte")
+            values.append(imposte)
+            measures.append("relative")
+        
+        # Aggiungi il flusso netto finale
+        labels.append("Flusso Monetario Netto")
+        if flusso_netto != 0:
+            values.append(flusso_netto)
+        else:
+            # Calcola il flusso netto dalla somma
+            flusso_calcolato = ebitda + variazioni_ccn + variazione_tfr + investimenti + gestione_finanziaria + imposte
+            values.append(flusso_calcolato)
+        measures.append("total")
+        
+        # Crea testi formattati per il grafico
+        text_values = []
+        for val in values:
+            text_values.append(f"€ {val:,.0f}".replace(',', '.'))
+        
+        # Crea il grafico a cascata
+        fig = go.Figure(go.Waterfall(
+            name="Conversione EBITDA in Flusso Monetario",
+            orientation="v",
+            measure=measures,
+            x=labels,
+            textposition="outside",
+            text=text_values,
+            y=values,
+            connector={"line": {"color": "rgb(63, 63, 63)"}},
+            increasing={"marker": {"color": "#2E8B57"}},  # Verde per valori positivi
+            decreasing={"marker": {"color": "#DC143C"}},  # Rosso per valori negativi
+            totals={"marker": {"color": "#1f77b4"}}       # Blu per totali
+        ))
+        
+        fig.update_layout(
+            title=f"Conversione EBITDA in Flusso Monetario - Anno {year_col}",
+            showlegend=False,
+            height=600,
+            xaxis_title="Componenti del Flusso",
+            yaxis_title="Importo (€)",
+            font=dict(size=12),
+            plot_bgcolor='white',
+            paper_bgcolor='white',
+            yaxis=dict(
+                gridcolor='lightgray',
+                gridwidth=1,
+                zeroline=True,
+                zerolinecolor='black',
+                zerolinewidth=2
+            )
+        )
+        
+        # Mostra il grafico
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # Aggiungi interpretazione
+        with st.expander("💡 Come leggere il grafico a cascata"):
+            st.markdown("""
+            **Il grafico a cascata mostra la conversione dell'EBITDA in flusso monetario:**
+            - 🔵 **EBITDA**: Punto di partenza - Risultato operativo prima di ammortamenti
+            - 🟢 **Barre verdi**: Componenti che aumentano la liquidità
+            - 🔴 **Barre rosse**: Componenti che diminuiscono la liquidità  
+            - 🔵 **Flusso Monetario Netto**: Risultato finale disponibile
+            
+            **Componenti analizzate:**
+            - **Variazioni CCN**: Effetto delle variazioni del capitale circolante
+            - **Variazione TFR**: Impatto dei fondi per trattamento di fine rapporto
+            - **Investimenti**: Flussi per acquisti/vendite di immobilizzazioni
+            - **Gestione Finanziaria**: Interessi attivi/passivi e movimenti finanziari
+            - **Imposte**: Effetto fiscale sul flusso di cassa
+            """)
+
+    # Crea il grafico a cascata
+    create_waterfall_chart(df_final_display, current_year_for_display)
 
     # --- Esportazione Excel e PDF per i Flussi Finanziari ---
     st.markdown("---")
