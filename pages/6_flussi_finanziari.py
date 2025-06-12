@@ -17,6 +17,13 @@ from streamlit.components.v1 import html
 # Importa il modulo del modello finanziario centrale
 import financial_model 
 
+# ✅ AGGIUNTA: Import ASCII
+try:
+    from ascii_table_generator import create_downloadable_ascii_report
+    ASCII_AVAILABLE = True
+except ImportError:
+    ASCII_AVAILABLE = False
+
 # Chiama la funzione per visualizzare i filtri nella sidebar
 sidebar_filtri.display_sidebar_filters()
 
@@ -30,6 +37,16 @@ selected_sezione = st.session_state.selected_sezione
 
 # --- Titolo e Intestazione Report ---
 st.title("💰 Report Flussi di Cassa")
+
+# ✅ AGGIUNTA: Didascalia
+st.markdown("""
+**Analisi dei Flussi di Cassa Aziendali**
+
+Il report mostra la conversione dell'EBITDA in flusso monetario disponibile,
+evidenziando l'impatto delle variazioni del capitale circolante, degli investimenti 
+e della gestione finanziaria sulla liquidità aziendale.
+""")
+
 st.markdown(f"**Filtri applicati:** Cliente: **{selected_cliente}** | Anni: **{', '.join(selected_anni) if selected_anni else 'Tutti'}**")
 st.markdown("---") 
 
@@ -402,7 +419,8 @@ if not df_final_display.empty:
         if len(df_export_flussi_actual.columns) > 1:
             df_export_flussi_actual.columns = ['Voce', str(current_year_for_display)]
 
-        col_excel_flows, col_pdf_flows = st.columns(2)
+        # ✅ MODIFICA: 3 colonne invece di 2
+        col_excel_flows, col_pdf_flows, col_ascii_flows = st.columns(3)
 
         with col_excel_flows:
             try:
@@ -530,5 +548,56 @@ if not df_final_display.empty:
                 )
             except Exception as e:
                 st.error(f"Errore nella generazione del file PDF: {e}")
+
+        # ✅ AGGIUNTA: Terza colonna per ASCII
+        with col_ascii_flows:
+            if ASCII_AVAILABLE:
+                try:
+                    # Identifica righe grassetto per ASCII
+                    bold_rows_ascii = []
+                    for item in financial_model.report_structure_ff:
+                        if item.get('Grassetto', False):
+                            bold_rows_ascii.append(item['Voce'])
+                    
+                    # Crea report ASCII completo
+                    ascii_content, ascii_buffer = create_downloadable_ascii_report(
+                        df=df_export_flussi_actual,
+                        title="REPORT FLUSSI FINANZIARI",
+                        subtitle="Conversione EBITDA in Flusso Monetario",
+                        bold_rows=bold_rows_ascii,
+                        report_type="Flussi di Cassa",
+                        filters=f"Cliente: {selected_cliente} | Anno: {current_year_for_display}",
+                        style="grid"
+                    )
+                    
+                    st.download_button(
+                        label="Scarica Report ASCII",
+                        data=ascii_buffer,
+                        file_name="flussi_finanziari.txt",
+                        mime="text/plain",
+                        help="Export formato testo - Tabelle perfette per email, console, stampa"
+                    )
+                    
+                except Exception as e:
+                    st.error(f"Errore generazione ASCII: {e}")
+                    # Fallback semplice
+                    try:
+                        simple_table = df_export_flussi_actual.to_string(index=False)
+                        simple_buffer = io.BytesIO()
+                        simple_buffer.write(simple_table.encode('utf-8'))
+                        simple_buffer.seek(0)
+                        
+                        st.download_button(
+                            label="Scarica Testo Semplice",
+                            data=simple_buffer,
+                            file_name="flussi_finanziari_simple.txt",
+                            mime="text/plain",
+                            help="Formato testo semplificato (fallback)"
+                        )
+                    except:
+                        st.error("Impossibile generare export testo.")
+            else:
+                st.info("ASCII non disponibile - Installa ascii_table_generator")
+
 else:
     st.info("Nessun dato da visualizzare. Verifica che ci siano dati per gli anni selezionati.")

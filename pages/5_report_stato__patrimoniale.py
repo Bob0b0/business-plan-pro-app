@@ -16,6 +16,13 @@ from streamlit.components.v1 import html
 # Importa il modulo del modello finanziario centrale
 import financial_model
 
+# ✅ AGGIUNTA: Import ASCII
+try:
+    from ascii_table_generator import create_downloadable_ascii_report
+    ASCII_AVAILABLE = True
+except ImportError:
+    ASCII_AVAILABLE = False
+
 # Funzione unica per la formattazione dei numeri (copiata da financial_model.py)
 # Questa funzione è ora definita in financial_model, quindi non serve qui
 # def format_number(x, pdf_format=False): ...
@@ -205,7 +212,8 @@ if not df_final_display.empty:
     # Per l'esportazione, prendiamo il DataFrame già pronto da financial_model.calculate_all_reports
     df_export_riclassificato_actual = all_calculated_reports['sp_export'] 
     
-    col_excel_riclass, col_pdf_riclass = st.columns(2)
+    # ✅ MODIFICA: 3 colonne invece di 2
+    col_excel_riclass, col_pdf_riclass, col_ascii_riclass = st.columns(3)
 
     with col_excel_riclass:
         excel_buffer_riclass = io.BytesIO()
@@ -329,5 +337,56 @@ if not df_final_display.empty:
             mime="application/pdf",
             help="Esporta lo Stato Patrimoniale riclassificato in un file PDF."
         )
+
+    # ✅ AGGIUNTA: Terza colonna per ASCII
+    with col_ascii_riclass:
+        if ASCII_AVAILABLE:
+            try:
+                # Identifica righe grassetto per ASCII
+                bold_rows_ascii = []
+                for item in financial_model.report_structure_sp:
+                    if item.get('Grassetto', False):
+                        bold_rows_ascii.append(item['Voce'])
+                
+                # Crea report ASCII completo
+                ascii_content, ascii_buffer = create_downloadable_ascii_report(
+                    df=df_export_riclassificato_actual,
+                    title="REPORT STATO PATRIMONIALE",
+                    subtitle="Riclassificato per Aree Funzionali",
+                    bold_rows=bold_rows_ascii,
+                    report_type="Stato Patrimoniale",
+                    filters=f"Cliente: {selected_cliente} | Anni: {', '.join(str(y) for y in years_to_display)}",
+                    style="grid"
+                )
+                
+                st.download_button(
+                    label="Scarica Report ASCII",
+                    data=ascii_buffer,
+                    file_name="stato_patrimoniale.txt",
+                    mime="text/plain",
+                    help="Export formato testo - Tabelle perfette per email, console, stampa"
+                )
+                
+            except Exception as e:
+                st.error(f"Errore generazione ASCII: {e}")
+                # Fallback semplice
+                try:
+                    simple_table = df_export_riclassificato_actual.to_string(index=False)
+                    simple_buffer = io.BytesIO()
+                    simple_buffer.write(simple_table.encode('utf-8'))
+                    simple_buffer.seek(0)
+                    
+                    st.download_button(
+                        label="Scarica Testo Semplice",
+                        data=simple_buffer,
+                        file_name="stato_patrimoniale_simple.txt",
+                        mime="text/plain",
+                        help="Formato testo semplificato (fallback)"
+                    )
+                except:
+                    st.error("Impossibile generare export testo.")
+        else:
+            st.info("ASCII non disponibile - Installa ascii_table_generator")
+
 else:
     st.info("Nessun dato da esportare.")
