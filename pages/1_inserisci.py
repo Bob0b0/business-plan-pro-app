@@ -31,7 +31,7 @@ try:
 except pd.io.sql.DatabaseError:
     anni_options_base = [] # Se la tabella non esiste
 
-anni_options_range = [str(year) for year in range(2023, 2031)] # Esempio: dal 2023 al 2030
+anni_options_range = [str(year) for year in range(2021, 2035)] # Range ampliato: dal 2021 al 2034
 anni_options = sorted(list(set(anni_options_base + anni_options_range)))
 
 

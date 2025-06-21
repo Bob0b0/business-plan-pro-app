@@ -1,5 +1,6 @@
-# pages/visualizza.py - Progetto Business Plan Pro - versione 2.0 - 2025-06-08
-# Obiettivo: Correzione AttributeError selected_anno e gestione filtro anni (lista).
+# pages/visualizza.py - Progetto Business Plan Pro - versione 2.5 - 2025-06-21
+# Obiettivo: Ripristino logica originale click-per-riga per modifica,
+# con ottimizzazione layout per leggibilità colonne.
 
 import streamlit as st
 import sqlite3
@@ -20,13 +21,11 @@ DATABASE_NAME = "business_plan_pro.db"
 
 # Accesso ai valori dei filtri da session_state
 selected_cliente = st.session_state.selected_cliente
-# CORREZIONE QUI: selected_anni è ora una LISTA
 selected_anni_list = st.session_state.selected_anni 
 selected_sezione = st.session_state.selected_sezione
 
 # --- Titolo con filtri selezionati ---
 st.title("📋 Visualizza Record")
-# Visualizza correttamente gli anni selezionati (se è una lista, join per visualizzazione)
 st.markdown(f"**Filtri applicati:** Cliente: **{selected_cliente}** | Anni: **{', '.join(selected_anni_list) if selected_anni_list else 'Tutti'}** | Sezione: **{selected_sezione}**")
 st.markdown("---")
 
@@ -48,16 +47,12 @@ try:
         query += " AND r.cliente = ?"
         params.append(selected_cliente)
     
-    # CORREZIONE QUI: Gestisci il filtro degli anni come lista
-    if selected_anni_list: # Se la lista di anni selezionati non è vuota
-        # Prepara i placeholder per la clausola IN (...)
+    if selected_anni_list: 
         years_placeholders = ','.join(['?' for _ in selected_anni_list])
         query += f" AND r.anno IN ({years_placeholders})"
-        params.extend([str(y) for y in selected_anni_list]) # Aggiungi gli anni alla lista dei parametri
-    # Se selected_anni_list è vuota, la condizione IN non viene aggiunta, e il filtro anno non si applica.
+        params.extend([str(y) for y in selected_anni_list]) 
 
-
-    if selected_sezione != "Tutti":
+    if selected_sezione != "Tutte": 
         query += " AND c.Sezione = ?"
         params.append(selected_sezione)
 
@@ -92,7 +87,7 @@ st.markdown(f"**Subtotale Importo Filtrato:** € {total_importo_formatted}")
 st.markdown("---")
 
 
-# --- Sezione Esportazione ---
+# --- Sezione Esportazione (codice invariato) ---
 st.subheader("Esporta Dati")
 if not df_filtered.empty:
     df_export = df_filtered[['ID', 'cliente', 'anno', 'importo', 'Conto', 'Sezione']].copy()
@@ -124,6 +119,15 @@ if not df_filtered.empty:
             buffer = io.BytesIO()
             doc = SimpleDocTemplate(buffer, pagesize=A4) 
             styles = getSampleStyleSheet()
+            if 'bold_text' not in styles:
+                styles.add(ParagraphStyle(name='bold_text', parent=styles['Normal'], fontName='Helvetica-Bold'))
+            if 'normal_text' not in styles:
+                styles.add(ParagraphStyle(name='normal_text', parent=styles['Normal'], fontName='Helvetica'))
+            if 'right_text' not in styles:
+                styles.add(ParagraphStyle(name='right_text', parent=styles['Normal'], alignment=2))  # 2 = right align
+            if 'right_bold_text' not in styles:
+                styles.add(ParagraphStyle(name='right_bold_text', parent=styles['Normal'], alignment=2, fontName='Helvetica-Bold'))
+
             story = []
 
             story.append(Paragraph(title, styles['h2']))
@@ -138,7 +142,7 @@ if not df_filtered.empty:
             for row_data in df_pdf_ready.values.tolist(): 
                 new_row = []
                 for c_idx, cell_value in enumerate(row_data):
-                    if pdf_cols_to_include[c_idx] == 'Importo': # Usa pdf_cols_to_include per indicare la colonna 'Importo'
+                    if pdf_cols_to_include[c_idx] == 'Importo': 
                         try:
                             new_row.append(f"{int(cell_value):,}".replace(",", "X").replace(".", ",").replace("X", "."))
                         except (ValueError, TypeError): 
@@ -147,18 +151,18 @@ if not df_filtered.empty:
                         new_row.append(str(cell_value))
                 formatted_data_for_pdf.append(new_row)
 
-            col_widths_pdf = [doc.width / len(df_data.columns)] * len(df_data.columns)
-            total_cols = len(df_pdf_ready.columns)
-            base_width = doc.width / total_cols
-            
-            for col_name in pdf_cols_to_include: # Itera sui nomi delle colonne da includere nel PDF
-                if col_name == 'ID Record': col_widths_pdf.append(base_width * 0.5)
-                elif col_name == 'Anno': col_widths_pdf.append(base_width * 0.6)
-                elif col_name == 'Cliente': col_widths_pdf.append(base_width * 1.5) 
-                elif col_name == 'Nome Conto': col_widths_pdf.append(base_width * 1.5)
-                elif col_name == 'Sezione Conto': col_widths_pdf.append(base_width * 0.8) 
-                elif col_name == 'Importo': col_widths_pdf.append(base_width * 1.0)
-                else: col_widths_pdf.append(base_width * 1.0) 
+            col_widths_pdf = []
+            total_cols = len(pdf_cols_to_include) 
+            base_width_per_col = doc.width / total_cols 
+
+            for col_name in pdf_cols_to_include:
+                if col_name == 'ID Record': col_widths_pdf.append(base_width_per_col * 0.5)
+                elif col_name == 'Anno': col_widths_pdf.append(base_width_per_col * 0.6)
+                elif col_name == 'Cliente': col_widths_pdf.append(base_width_per_col * 1.5) 
+                elif col_name == 'Nome Conto': col_widths_pdf.append(base_width_per_col * 1.5)
+                elif col_name == 'Sezione Conto': col_widths_pdf.append(base_width_per_col * 0.8) 
+                elif col_name == 'Importo': col_widths_pdf.append(base_width_per_col * 1.0)
+                else: col_widths_pdf.append(base_width_per_col * 1.0) 
             
             sum_widths = sum(col_widths_pdf)
             col_widths_pdf = [w * (doc.width / sum_widths) for w in col_widths_pdf]
@@ -172,7 +176,7 @@ if not df_filtered.empty:
                 ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
                 ('BACKGROUND', (0, 1), (-1, -1), colors.white), 
                 ('GRID', (0, 0), (-1, -1), 0.25, colors.white), 
-                ('ALIGN', (pdf_cols_to_include.index('Importo'), 0), (pdf_cols_to_include.index('Importo'), -1), 'RIGHT'), # Usa l'indice corretto
+                ('ALIGN', (pdf_cols_to_include.index('Importo'), 0), (pdf_cols_to_include.index('Importo'), -1), 'RIGHT'), 
             ])
             
             table = Table(formatted_data_for_pdf, colWidths=col_widths_pdf) 
@@ -195,21 +199,29 @@ else:
 
 st.markdown("---") 
 
-# --- CSS per la compattazione e allineamento (solo il necessario) ---
+# --- CSS per la compattazione e allineamento (modificato per una migliore resa) ---
 st.markdown("""
 <style>
 /* Rimuovi spazio (gap) tra le colonne */
 div[data-testid="stHorizontalBlock"] {
-    gap: 0.2rem !important;
+    gap: 0.1rem !important; /* Ridotto ulteriormente il gap tra le colonne */
 }
 
-/* Allinea il testo a destra per gli importi (questo è sicuro) */
+/* Allinea il testo a destra per gli importi e gestisci il nowrap/ellipsis */
 .text-align-right {
     text-align: right;
-    padding-right: 0.5rem;
+    padding-right: 0.2rem; /* Leggero padding a destra */
+    white-space: nowrap; /* Impedisce al testo di andare a capo */
+    overflow: hidden; /* Nasconde il testo che eccede */
+    text-overflow: ellipsis; /* Aggiunge "..." se il testo è troppo lungo */
+    /* Assicurati che lo spazio verticale sia allineato */
+    display: flex; /* Utilizza flexbox per allineamento interno */
+    align-items: center; /* Centra verticalmente il contenuto */
+    justify-content: flex-end; /* Allinea a destra il contenuto */
+    height: 100%; /* Assicura che la div occupi tutta l'altezza della cella */
 }
 
-/* Stile per il pulsante Modifica (l'unico che rimarrà) */
+/* Stile per il pulsante Modifica */
 .stButton > button {
     padding: 0.1rem 0.2rem; 
     margin: 0;
@@ -222,19 +234,49 @@ div[data-testid="stHorizontalBlock"] {
     align-items: center;
 }
 
-/* Allinea la colonna delle azioni a destra (questo è sicuro) */
+/* Allinea la colonna delle azioni a destra */
 div[data-testid^="stColumn"]:last-child > div > div > div {
     display: flex;
     justify-content: flex-end;
     align-items: center;
     padding-right: 0.1rem;
 }
+
+/* Stile per le celle di testo per migliorare la gestione dello spazio */
+.text-cell-display {
+    white-space: nowrap; /* Impedisce al testo di andare a capo */
+    overflow: hidden; /* Nasconde il testo che eccede */
+    text-overflow: ellipsis; /* Aggiunge "..." se il testo è troppo lungo */
+    /* Allineamento e centering verticalmente per le celle di testo */
+    display: flex;
+    align-items: center;
+    justify-content: flex-start; /* Allinea a sinistra */
+    height: 100%;
+}
+
+/* Forzare l'allineamento verticale al centro per tutti gli elementi nelle colonne */
+/* Questo selettore è più generico e potrebbe aiutare a rendere le righe più uniformi. */
+/* Attenzione: selettori Streamlit interni (come st-emotion-cache-...) possono cambiare tra versioni. */
+[data-testid^="stColumn"] > div > div > div {
+    display: flex;
+    align-items: center; /* Centra verticalmente tutto il contenuto delle colonne */
+    height: 100%; /* Fa sì che il div interno prenda tutta l'altezza */
+}
+
+
 </style>
 """, unsafe_allow_html=True)
 
 
-# --- Intestazioni della Tabella ---
-cols_widths = [0.4, 0.4, 1.0, 2.0, 1.0, 0.5] # ID, Anno, Importo, Conto, Sezione, Azioni (solo matita)
+# --- Intestazioni della Tabella (con larghezze ottimizzate per la visualizzazione) ---
+# Obiettivo: Più spazio per Importo, meno per Conto e Sezione.
+# Nuove larghezze relative (basate sul tentativo 2.4, ma con piccoli aggiustamenti)
+# Ho aumentato Importo (1.8 -> 2.0), ridotto Conto (1.5 -> 1.2), Sezione (0.7 -> 0.6)
+# Bilanciamento: ID(0.4), Anno(0.4), Importo(2.0), Conto(1.2), Sezione(0.6), Azioni(0.5)
+# Somma totale di 5.1. La larghezza massima disponibile è 6.0 in Streamlit (se `layout="wide"`)
+# Questi valori relativi saranno scalati da Streamlit.
+cols_widths = [0.4, 0.4, 2.0, 1.2, 0.6, 0.5] 
+
 header_cols = st.columns(cols_widths)
 
 with header_cols[0]: st.markdown("**ID**")
@@ -264,16 +306,19 @@ else:
         with col2:
             st.write(row['anno'])
         with col3:
+            # Applica la classe CSS per gli importi alle celle
             st.markdown(f"<div class='text-align-right'>{importo_formatted}</div>", unsafe_allow_html=True)
         with col4:
-            st.write(row['Conto'])
+            # Applica la nuova classe text-cell-display per i campi di testo
+            st.markdown(f"<div class='text-cell-display'>{row['Conto']}</div>", unsafe_allow_html=True)
         with col5:
-            st.write(row['Sezione'])
+            # Applica la nuova classe text-cell-display per i campi di testo
+            st.markdown(f"<div class='text-cell-display'>{row['Sezione']}</div>", unsafe_allow_html=True)
         
         with col6: # Colonna per il solo pulsante Modifica
             if st.button("✏️", key=f"edit_{row['ID']}", help="Modifica record"):
                 st.session_state.record_to_modify_id = row['ID']
-                st.switch_page("pages/modifica.py")
+                st.switch_page("pages/3_modifica.py")  # Reindirizza alla pagina di modifica
                     
 # Reset dello stato di conferma se l'ID non corrisponde più a un record visualizzato
 # o se l'utente ha navigato via e torna.

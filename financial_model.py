@@ -1,20 +1,34 @@
 # financial_model.py - Progetto Business Plan Pro - versione 1.6 - 2025-06-10
-# Versione pulita senza import circolari
+# MODIFICA: Numeri negativi tra parentesi + VOCE ALTRI COSTI E PROV. NON OP.
 
 import pandas as pd
 
-# --- Funzione di formattazione dei numeri (riutilizzata) ---
+# --- Funzione di formattazione dei numeri (MODIFICATA) ---
 def format_number(x, pdf_format=False):
     """
     Formatta un numero intero con separatore delle migliaia.
+    NUOVO: I numeri negativi sono mostrati tra parentesi es. (1.045) invece di -1.045
     Se pdf_format è True, usa '.' come separatore migliaia e ',' per decimali (per ReportLab).
     Altrimenti usa ',' come separatore migliaia e '.' per decimali (per visualizzazione HTML/Excel).
     """
     try:
         num = int(x)
-        if pdf_format:
-            return f"{num:,}".replace(",", "X").replace(".", ",").replace("X", ".")
-        return f"{num:,}".replace(",", ".")
+        
+        # ✅ NUOVA LOGICA: Gestione numeri negativi tra parentesi
+        if num < 0:
+            abs_num = abs(num)
+            if pdf_format:
+                formatted = f"({abs_num:,})".replace(",", "X").replace(".", ",").replace("X", ".")
+            else:
+                formatted = f"({abs_num:,})".replace(",", ".")
+        else:
+            if pdf_format:
+                formatted = f"{num:,}".replace(",", "X").replace(".", ",").replace("X", ".")
+            else:
+                formatted = f"{num:,}".replace(",", ".")
+        
+        return formatted
+        
     except (ValueError, TypeError):
         return str(x)
 
@@ -35,7 +49,7 @@ report_structure_ce = [
     {'Voce': 'Godimento di beni di terzi', 'Tipo': 'Dettaglio', 'ID_RI': 'RI07', 'Ordine': 180},
     {'Voce': 'Oneri diversi di gestione', 'Tipo': 'Dettaglio', 'ID_RI': 'RI08', 'Ordine': 190},
     {'Voce': 'Variazione rim. m.p. e merci', 'Tipo': 'Dettaglio', 'ID_RI': 'RI09', 'Ordine': 200},
-    {'Voce': 'COSTI DELLA PRODUZIONE', 'Tipo': 'Calcolo', 'Formula_Refs': ['RI05', 'RI06', 'RI07', 'RI08', 'RI09'], 'Formula': lambda d: d['RI05'] + d['RI06'] + d['RI07'] + d['RI08'] + d['RI09'], 'Grassetto': True, 'Maiuscolo': True, 'Ordine': 210},
+    {'Voce': 'COSTI DELLA PRODUZIONE', 'Tipo': 'Calcolo', 'Formula_Refs': ['RI05', 'RI06', 'RI07', 'RI08', 'RI09'], 'Formula': lambda d: d['RI05'] + d['RI06'] + d['RI07'] + d['RI08'] - d['RI09'], 'Grassetto': True, 'Maiuscolo': True, 'Ordine': 210},
     {'Voce': 'VALORE AGGIUNTO', 'Tipo': 'Calcolo', 'Formula_Refs': ['VALORE DELLA PRODUZIONE', 'COSTI DELLA PRODUZIONE'], 'Formula': lambda d: d['VALORE DELLA PRODUZIONE'] - d['COSTI DELLA PRODUZIONE'], 'Grassetto': True, 'Maiuscolo': True, 'Ordine': 220},
     {'Voce': 'Personale', 'Tipo': 'Dettaglio', 'ID_RI': 'RI10', 'Ordine': 230},
     {'Voce': 'MARGINE OPERATIVO LORDO (EBITDA)', 'Tipo': 'Calcolo', 'Formula_Refs': ['VALORE AGGIUNTO', 'RI10'], 'Formula': lambda d: d['VALORE AGGIUNTO'] - d['RI10'], 'Grassetto': True, 'Maiuscolo': True, 'Ordine': 240},
@@ -47,8 +61,8 @@ report_structure_ce = [
     {'Voce': 'SALDO GESTIONE FINANZIARIA', 'Tipo': 'Calcolo', 'Formula_Refs': ['RI14', 'RI13'], 'Formula': lambda d: d['RI14'] - d['RI13'], 'Grassetto': True, 'Maiuscolo': True, 'Ordine': 300},
     {'Voce': 'Altri ricavi e proventi non operativi', 'Tipo': 'Dettaglio', 'ID_RI': 'RI15', 'Ordine': 310},
     {'Voce': 'Altri costi non operativi', 'Tipo': 'Dettaglio', 'ID_RI': 'RI16', 'Ordine': 320},
-    {'Voce': 'SALDO ALTRI RICAVI E PROVENTI NON OPERATIVI', 'Tipo': 'Calcolo', 'Formula_Refs': ['RI15', 'RI16'], 'Formula': lambda d: d['RI15'] - d['RI16'], 'Grassetto': True, 'Maiuscolo': True, 'Ordine': 330},
-    {'Voce': 'RISULTATO LORDO (EBT)', 'Tipo': 'Calcolo', 'Formula_Refs': ['RISULTATO OPERATIVO (EBIT)', 'SALDO GESTIONE FINANZIARIA', 'SALDO ALTRI RICAVI E PROVENTI NON OPERATIVI'], 'Formula': lambda d: d['RISULTATO OPERATIVO (EBIT)'] + d['SALDO GESTIONE FINANZIARIA'] + d['SALDO ALTRI RICAVI E PROVENTI NON OPERATIVI'], 'Grassetto': True, 'Maiuscolo': True, 'Ordine': 340},
+    {'Voce': 'ALTRI COSTI E PROV. NON OP.', 'Tipo': 'Calcolo', 'Formula_Refs': ['RI15', 'RI16'], 'Formula': lambda d: d['RI15'] - d['RI16'], 'Grassetto': True, 'Maiuscolo': True, 'Ordine': 330},  # ✅ MODIFICATO: Era "SALDO ALTRI RICAVI E PROVENTI NON OPERATIVI"
+    {'Voce': 'RISULTATO LORDO (EBT)', 'Tipo': 'Calcolo', 'Formula_Refs': ['RISULTATO OPERATIVO (EBIT)', 'SALDO GESTIONE FINANZIARIA', 'ALTRI COSTI E PROV. NON OP.'], 'Formula': lambda d: d['RISULTATO OPERATIVO (EBIT)'] + d['SALDO GESTIONE FINANZIARIA'] + d['ALTRI COSTI E PROV. NON OP.'], 'Grassetto': True, 'Maiuscolo': True, 'Ordine': 340},
     {'Voce': 'Imposte di esercizio', 'Tipo': 'Dettaglio', 'ID_RI': 'RI17', 'Ordine': 350},
     {'Voce': 'RISULTATO NETTO', 'Tipo': 'Dettaglio', 'ID_RI': 'RI18', 'Ordine': 360}, 
 ]
@@ -58,8 +72,8 @@ report_structure_sp = [
     # STATO PATRIMONIALE
     {'Voce': 'STATO PATRIMONIALE', 'Tipo': 'Intestazione', 'Grassetto': True, 'Maiuscolo': True, 'Ordine': 400},
     {'Voce': 'Soci c/sottoscrizioni', 'Tipo': 'Dettaglio', 'ID_RI': 'RI19', 'Ordine': 405},
-    {'Voce': 'Immobilizzazioni materiali', 'Tipo': 'Dettaglio', 'ID_RI': 'RI20', 'Ordine': 410},
-    {'Voce': 'Immobilizzazioni immateriali', 'Tipo': 'Dettaglio', 'ID_RI': 'RI21', 'Ordine': 420},
+    {'Voce': 'Immobilizzazioni immateriali', 'Tipo': 'Dettaglio', 'ID_RI': 'RI20', 'Ordine': 410},
+    {'Voce': 'Immobilizzazioni materiali', 'Tipo': 'Dettaglio', 'ID_RI': 'RI21', 'Ordine': 420},
     {'Voce': 'Immobilizzazioni finanziarie', 'Tipo': 'Dettaglio', 'ID_RI': 'RI22', 'Ordine': 430},
     {'Voce': 'TOTALE IMMOBILIZZAZIONI', 'Tipo': 'Calcolo', 'Formula_Refs': ['RI20', 'RI21', 'RI22'], 'Formula': lambda d: d['RI20'] + d['RI21'] + d['RI22'], 'Grassetto': True, 'Maiuscolo': True, 'Ordine': 440},
     {'Voce': 'Crediti verso clienti', 'Tipo': 'Dettaglio', 'ID_RI': 'RI23', 'Ordine': 450},
@@ -278,3 +292,23 @@ def calculate_all_reports(df_full_data, years_to_display, report_structure_ce, r
     final_reports['ff_export'] = pd.DataFrame(export_rows_ff)
 
     return final_reports
+
+
+# ✅ AGGIORNATA: Mantengo anche format_number_html per compatibilità (senza modifiche)
+def format_number_html(x, add_euro=False):
+    """
+    Restituisce un numero formattato per l'HTML:
+    - punto migliaia
+    - negativi tra parentesi
+    - opzionale ' €' alla fine
+    """
+    try:
+        import pandas as pd
+        if pd.isna(x) or float(x) == 0:
+            return ""
+        x = float(x)
+        formatted = f"({abs(x):,.0f})" if x < 0 else f"{x:,.0f}"
+        formatted = formatted.replace(",", ".")
+        return formatted + " €" if add_euro else formatted
+    except:
+        return str(x)

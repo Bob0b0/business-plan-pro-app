@@ -1,0 +1,348 @@
+Ti fornisco:
+1. Un bilancio in PDF (per uno o più anni)
+2. Il piano dei conti usato nella mia app, con struttura:
+   CODICE|DESCRIZIONE |SEZIONE
+3. Un esempio di bilancio riclassificato, con indicazioni della semantica usata (sigle T = titolo, C = conto, e i codici associati), ad esempio:
+   DESCRIZIONE|SIGLA|CODICE
+
+Obiettivo:
+Per ogni voce numerica presente nel PDF, generare una riga CSV con queste colonne:
+- CLIENTE = 
+- ANNO = l’anno di competenza (2022, 2023, ecc.)
+- CODICE = codice esatto dal “piano dei conti” se riconosciuto; altrimenti DA CONFERMARE
+- DESCRIZIONE = testo originale del bilancio o nota integrativa
+- IMPORTO = valore numerico presente nel PDF
+- ORIGINE = CE/SP se preso dai totali di Stato Patrimoniale o Conto Economico, Nota integrativa se estratto da dettaglio nella nota integrativa
+
+Requisiti di controllo:
+1. Se una voce unica viene scomposta in più dettagli (es. “Debiti” → “Debiti verso fornitori”, “Debiti tributari”, ecc.), la somma delle parti deve essere uguale al totale.
+   - In caso di scostamento, aggiungi una riga con DESCRIZIONE = "DIFFERENZA DA VERIFICARE" e l'importo della differenza.
+2. A fine elaborazione per ogni anno:
+   - TOTALE ATTIVO deve essere uguale a TOTALE PASSIVO.
+   - Il risultato del Conto Economico (utile o perdita) deve corrispondere a quello dichiarato.
+3. Le righe devono includere solo voci numeriche, pronte all'importazione.
+
+Piano dei conti
+Codice;Conto;Sezione
+SP01;Crediti v/ soci vers. Ancora dovuti;SP
+SP02;Costi di impianto e di ampliamento;SP
+SP03;Costi di ricerca, di sviluppo e di pubblicit…;SP
+SP04;Diritti di brev.ind. e utilizzo opere dell'ingegno;SP
+SP05;Concessioni, licenze, marchi e diritti simili;SP
+SP06;Avviamento;SP
+SP07;Immobilizzazioni immateriali in corso e acconti;SP
+SP08;Altre immobilizzazioni immateriali;SP
+SP09;Terreni e fabbricati ;SP
+SP10;Impianti e macchinario ;SP
+SP11;Attrezzature industriali e commerciali ;SP
+SP12;Altri beni materiali ;SP
+SP13;Immobilizzazioni materiali in corso e acconti ;SP
+SP14;Immobilizzazioni concesse in locazione finanziaria;SP
+SP15;Partecipazioni in imprese controllate ;SP
+SP16;Partecipazioni in imprese collegate;SP
+SP17;Partecipazioni in altre imprese;SP
+SP18;Crediti fin.vs.controllate nei 12 m.;SP
+SP19;Crediti fin. vs. controllate oltre 12 m.;SP
+SP20;Crediti fin. vs.collegate nei 12 m.;SP
+SP21;Crediti fin. vs.collegate oltre 12 m.;SP
+SP22;Crediti fin. vs.controllanti nei 12 m.;SP
+SP23;Crediti fin. vs.controllanti oltre 12 m.;SP
+SP24;Crediti fin. vs.altri nei 12 m.;SP
+SP25;Crediti fin. vs.altri oltre 12 m.;SP
+SP26;Altri titoli ;SP
+SP27;Azioni proprie ;SP
+SP28;Rimanenze Materie prime;SP
+SP29;Rimanenze prodotti in lav. ;SP
+SP30;Lavori in corso e su ordinazione ;SP
+SP31;Prodotti finiti e merci ;SP
+SP32;Acconti ;SP
+SP33;Clienti nei 12 m.;SP
+SP34;Clienti oltre 12 m.;SP
+SP35;Crediti comm.li vs.controllate nei 12 m.;SP
+SP36;Crediti comm.li vs.controllate oltre 12 m.;SP
+SP37;Crediti comm.li vs.collegate nei 12 m.;SP
+SP38;Crediti comm.li vs.collegate oltre 12 m.;SP
+SP39;Crediti comm.li vs.controllanti nei 12 m.;SP
+SP40;Crediti comm.li vs.controllanti oltre 12 m.;SP
+SP41;Crediti tributari entro 12 m.;SP
+SP42;Crediti tributari oltre 12 m.;SP
+SP43;Imposte anticipate nei 12 m.;SP
+SP44;Imposte anticipate oltre 12 m.;SP
+SP45;Altri crediti nei 12. m.;SP
+SP46;Altri crediti oltre 12 m.;SP
+SP47;Attivit… finanz. non immobilizate;SP
+SP48;depositi bancari e postali ;SP
+SP49;assegni ;SP
+SP50;danaro e valori in cassa ;SP
+SP51;Ratei e risconti attivi;SP
+SP52;Capitale sociale ;SP
+SP53;Riserva da sovrapprezzo delle azioni ;SP
+SP54;Riserve da rivalutazione ;SP
+SP55;Riserva legale ;SP
+SP56;Riserve statutarie;SP
+SP57;Riserva per azioni proprie in portafoglio ;SP
+SP58;Altre riserve ;SP
+SP59;Utili (perdite) portati a nuovo ;SP
+SP60;Utile (perdita) dell'esercizio ;SP
+SP61;Fondo per tratt.quiescenza e simili ;SP
+SP62;Fondo per imposte ;SP
+SP63;Altri fondi;SP
+SP64; T.F.R. di lavoro subordinato ;SP
+SP65;Obbligazioni nei 12 m.;SP
+SP66;Obbligazioni oltre 12 m.;SP
+SP67;Obbligazioni conv. nei 12 m.;SP
+SP68;Obbligazioni conv. oltre 12 m.;SP
+SP69;Fin. Soci nei 12 m.;SP
+SP70;Fin. Soci oltre 12 m.;SP
+SP71;Banche entro 12 m.;SP
+SP72;Banche oltre 12 m.;SP
+SP73;Altri finanz. nei 12 m.;SP
+SP74;Altri finanz. oltre 12 m.;SP
+SP75;Acconti nei 12 m.;SP
+SP76;Acconti oltre 12.m.;SP
+SP77;Fornitori nei 12 m.;SP
+SP78;Fornitori oltre 12 m.;SP
+SP79;Titoli di credito nei 12 m.;SP
+SP80;Titoli di credito oltre 12 m.;SP
+SP81;Debiti vs.controllate nei 12 m.;SP
+SP82;Debiti vs.controllate oltre 12 m.;SP
+SP83;Debiti vs.collegate nei 12 m.;SP
+SP84;Debiti vs.collegate oltre 12 m.;SP
+SP85;Debiti vs.controllanti nei 12 m.;SP
+SP86;Debiti vs.controllanti oltre 12 m.;SP
+SP87;Tributari entro 12 m.;SP
+SP88;Tributari oltre 12 m.;SP
+SP89;Ist.previdenza e ass. nei 12 m.;SP
+SP90;Ist.previdenza e ass. oltre 12 m.;SP
+SP91;Altri debiti nei 12 m.;SP
+SP92;Altri debiti olre 12 m.;SP
+SP93;Ratei e risconti passivi;SP
+CE01;Ricavi delle vendite e delle prestazioni ;CE
+CE02;Variazioni rimanenze di prod. in lav., s.l. e p.f. ;CE
+CE03;Variazioni dei lavori in corso su ordinazione ;CE
+CE04;Incrementi di immobilizzazioni per lavori interni ;CE
+CE05;Contributi in conto esercizio;CE
+CE06;Altri ricavi e proventi;CE
+CE07;per materie prime, sussidiarie, di consumo e di merci ;CE
+CE08;per servizi ;CE
+CE09;per godimento di beni di terzi ;CE
+CE10;salari e stipendi ;CE
+CE11;oneri sociali ;CE
+CE12;trattamento di fine rapporto ;CE
+CE13;trattamento di quiescenza e simili;CE
+CE14;altri costi del personale;CE
+CE15;Ammortamento immobilizzazioni immateriali;CE
+CE16;Ammortamento immobilizzazioni materiali ;CE
+CE17;Altre svalutazioni delle immobilizzazioni;CE
+CE18;Svalutazioni dei crediti att.circol.e disponibilit… ;CE
+CE19;Variazioni rim. m.p., sussidiarie, di consumo e merci;CE
+CE20;Accantonamenti per rischi ;CE
+CE21;Altri accantonamenti ;CE
+CE22;Oneri diversi di gestione ;CE
+CE23;Proventi da partecipazioni ;CE
+CE24;Altri proventi finanziari ;CE
+CE25;Interessi e altri oneri finanziari;CE
+CE26;Utili e perdite su cambi;CE
+CE27;Rivalutazioni ;CE
+CE28;Svalutazioni;CE
+CE29;Proventi straordinari ;CE
+CE30;Oneri straordinari ;CE
+CE31;Imposte sul reddito dell'esercizio, correnti, differite e anticipate;CE
+CE32;Utile (perdita) dell'esercizio;CE
+
+Esempio di bilancio riclassificato
+Stato patrimoniale,
+DESCRIZIONE,SIGLA,CODICE
+Stato patrimoniale,T,
+Attivo,T,
+A) Crediti verso soci per versamenti ancora dovuti,C,SP01
+Totale crediti verso soci per versamenti ancora dovuti (A),T,
+B) Immobilizzazioni,T,
+I - Immobilizzazioni immateriali,T,
+1) costi di impianto e di ampliamento,C,SP02,
+2) costi di sviluppo,C,SP03,
+3) diritti di brevetto industriale e diritti di utilizzazione delle opere dell'ingegno,C,SP04,
+4) concessioni, licenze, marchi e diritti simili,C,SP05,
+5) avviamento,C,SP06,
+6) immobilizzazioni in corso e acconti,C,SP07,
+7) altre,C,SP08,
+Totale immobilizzazioni immateriali,T,
+II - Immobilizzazioni materiali,T,
+1) terreni e fabbricati,C,SP09,
+2) impianti e macchinario,C,SP10,
+3) attrezzature industriali e commerciali,C,SP11,
+4) altri beni,C,SP12,
+5) immobilizzazioni in corso e acconti,C,SP13,
+Totale immobilizzazioni materiali,T,
+III - Immobilizzazioni finanziarie,T,
+1) partecipazioni in,T,
+b) imprese collegate,C,SP15,
+d-bis) altre imprese,C,SP16,
+Totale partecipazioni,T,
+2) crediti,T,
+d-bis) verso altri,T,
+esigibili entro l'esercizio successivo,C,SP24,
+esigibili oltre l'esercizio successivo,C,SP25,
+Totale crediti verso altri,T,
+Totale crediti,T,
+Totale immobilizzazioni finanziarie,T,
+Totale immobilizzazioni (B),T,
+C) Attivo circolante,T,
+I - Rimanenze,T,
+1) materie prime, sussidiarie e di consumo,C,SP28,
+3) Iavori in corso su ordinazione,C,SP30,
+4) prodotti finiti e merci,C,SP31,
+Totale rimanenze,T,
+II - Crediti,T,
+1) verso clienti,T,
+esigibili entro l'esercizio successivo,C,SP33,
+esigibili oltre l'esercizio successivo,C,SP34,
+Totale crediti verso clienti,T,
+5-bis) crediti tributari,T,
+esigibili entro l'esercizio successivo,C,SP41,
+esigibili oltre l'esercizio successivo,C,SP42,
+Totale crediti tributari,T,
+5-ter) imposte anticipate,C,SP43,
+5-quater) verso altri,T,
+esigibili entro l'esercizio successivo,C,SP45,
+esigibili oltre l'esercizio successivo,C,SP46,
+Totale crediti verso altri,T,
+Totale crediti,T,
+III - Attività finanziarie che non costituiscono immobilizzazioni,T,
+4) altre partecipazioni,C,SP47,
+6) altri titoli,C,SP47,
+Totale attività finanziarie che non costituiscono immobilizzazioni,T,
+IV - Disponibilità liquide,T,
+1) depositi bancari e postali,C,SP48,
+2) assegni,C,SP49,
+3) danaro e valori in cassa,C,SP50,
+Totale disponibilità liquide,T,
+Totale attivo circolante (C),T,
+D) Ratei e risconti,C,SP51,
+Totale attivo,T,
+Passivo,T,
+A) Patrimonio netto,T,
+I - Capitale,C,SP52,
+II - Riserva da soprapprezzo delle azioni,C,SP53,
+III - Riserve di rivalutazione,C,SP54,
+IV - Riserva legale,C,SP55,
+V - Riserve statutarie,C,SP56,
+VI - Altre riserve, distintamente indicate,T,
+Riserva straordinaria,C,SP58,
+Versamenti in conto aumento di capitale,C,SP58,
+Riserva avanzo di fusione,C,SP58,
+Varie altre riserve,C,SP58,
+Totale altre riserve,T,
+VII - Riserva per operazioni di copertura dei flussi finanziari attesi,C,SP58,
+VIII - Utili (perdite) portati a nuovo,C,SP59,
+IX - Utile (perdita) dell'esercizio,C,SP60,
+Perdita ripianata nell'esercizio,C,SP60,
+Totale patrimonio netto,T,
+B) Fondi per rischi e oneri,T,
+1) per trattamento di quiescenza e obblighi simili,C,SP61,
+2) per imposte, anche differite,C,SP62,
+3) strumenti finanziari derivati passivi,C,SP63,
+4) altri,C,SP63,
+Totale fondi per rischi ed oneri,T,
+C) Trattamento di fine rapporto di Iavoro subordinato,C,SP64,
+D) Debiti,T,
+1) obbligazioni,T,
+esigibili entro l'esercizio successivo,C,SP65,
+esigibili oltre l'esercizio successivo,C,SP66,
+Totale obbligazioni,T,
+2) obbligazioni convertibili,C,SP67,
+Totale obbligazioni convertibili,T,
+3) debiti verso soci per finanziamenti,T,
+esigibili entro l'esercizio successivo,C,SP69,
+esigibili oltre l'esercizio successivo,C,SP70,
+Totale debiti verso soci per finanziamenti,T,
+4) debiti verso banche,T,
+esigibili entro l'esercizio successivo,C,SP71,
+esigibili oltre l'esercizio successivo,C,SP72,
+Totale debiti verso banche,T,
+5) debiti verso altri finanziatori,C,SP73,
+Totale debiti verso altri finanziatori,T,
+6) acconti,T,
+esigibili entro l'esercizio successivo,C,SP75,
+esigibili oltre l'esercizio successivo,C,SP76,
+Totale acconti,T,
+7) debiti verso fornitori,T,
+esigibili entro l'esercizio successivo,C,SP77,
+esigibili oltre l'esercizio successivo,C,SP78,
+Totale debiti verso fornitori,T,
+8) debiti rappresentati da titoli di credito,C,SP79,
+Totale debiti rappresentati da titoli di credito,T,
+9) debiti verso imprese controllate,C,SP82,
+Totale debiti verso imprese controllate,T,
+10) debiti verso imprese collegate,C,SP83,
+Totale debiti verso imprese collegate,T,
+11) debiti verso controllanti,C,SP85,
+Totale debiti verso controllanti,T,
+11-bis) debiti verso imprese sottoposte al controllo delle controllanti,C,SP85,
+Totale debiti verso imprese sottoposte al controllo delle controllanti,T,
+12) debiti tributari,T,
+esigibili entro l'esercizio successivo,C,SP87,
+esigibili oltre l'esercizio successivo,C,SP88,
+Totale debiti tributari,T,
+13) debiti verso istituti di previdenza e di sicurezza sociale,T,
+esigibili entro l'esercizio successivo,C,SP89,
+esigibili oltre l'esercizio successivo,C,SP90,
+Totale debiti verso istituti di previdenza e di sicurezza sociale,T,
+14) altri debiti,T,
+esigibili entro l'esercizio successivo,C,SP91,
+esigibili oltre l'esercizio successivo,C,SP92,
+Totale altri debiti,T,
+Totale debiti,T,
+E) Ratei e risconti,C,SP93
+Totale passivo,T,
+Conto economico,T,
+A) Valore della produzione,T,
+1) ricavi delle vendite e delle prestazioni,C,CE01
+4) incrementi di immobilizzazioni per Iavori interni,C,CE02
+5) altri ricavi e proventi,T,
+contributi in conto esercizio,C,CE05
+altri,C,CE06
+Totale altri ricavi e proventi,T,
+Totale valore della produzione,T,
+B) Costi della produzione,T,
+6) per materie prime, sussidiarie, di consumo e di merci,C,CE07,
+7) per servizi,C,CE08,
+8) per godimento di beni di terzi,C,CE09,
+9) per il personale,T,
+a) salari e stipendi,C,CE10,
+b) oneri sociali,C,CE11,
+c) trattamento di fine rapporto,C,CE12,
+e) altri costi,C,CE14,
+Totale costi per il personale,T,
+10) ammortamenti e svalutazioni,T,
+a) ammortamento delle immobilizzazioni immateriali,C,CE15,
+b) ammortamento delle immobilizzazioni materiali,C,CE16,
+d) svalutazioni dei crediti compresi nell'attivo circolante e delle disponibilità liquide,C,CE18,
+Totale ammortamenti e svalutazioni,T,
+11) variazioni delle rimanenze di materie prime, sussidiarie, di consumo e merci,C,CE19,
+14) oneri diversi di gestione,C,CE22
+Totale costi della produzione,T,
+Differenza tra valore e costi della produzione (A - B),T,
+C) Proventi e oneri finanziari,T,
+15) proventi da partecipazioni,T,
+altri,C,CE24,
+Totale proventi da partecipazioni,T,
+16) altri proventi finanziari,T,
+d) proventi diversi dai precedenti,C,CE24
+altri,C,CE24,
+Totale proventi diversi dai precedenti,T,
+Totale altri proventi finanziari,T,
+17) interessi e altri oneri finanziari,T,
+altri,C,CE25,
+Totale interessi e altri oneri finanziari,T,
+Totale proventi e oneri finanziari (15 + 16 - 17 + - 17-bis),T,
+D) Rettifiche di valore di attività e passività finanziarie,T,
+18) Rivalutazioni,C,CE27,
+19) Svalutazioni,C,CE28,
+Totale delle rettifiche di valore di attività e passività finanziarie (18 - 19),T,
+Risultato prima delle imposte (A - B + - C + - D),T,
+20) Imposte sul reddito dell'esercizio, correnti, differite e anticipate,T,
+imposte correnti,C,CE31,
+imposte differite e anticipate,C,CE31,
+Totale delle imposte sul reddito dell'esercizio, correnti, differite e anticipate,T,
+21) Utile (perdita) dell'esercizio,C,CE32,

@@ -120,7 +120,7 @@ if current_record_id_selected:
                     conn.commit()
                     st.success("Record aggiornato con successo.")
                     st.session_state.record_to_modify_id = None # Resetta l'ID
-                    st.switch_page("pages/visualizza.py") # Torna alla pagina di visualizzazione
+                    st.switch_page("pages/2_visualizza.py") # Torna alla pagina di visualizzazione
                 except sqlite3.Error as e:
                     st.error(f"Errore durante l'aggiornamento: {e}")
 
@@ -133,17 +133,17 @@ if current_record_id_selected:
                 conn.commit()
                 st.success("Record eliminato con successo.")
                 st.session_state.record_to_modify_id = None # Resetta l'ID
-                st.switch_page("pages/visualizza.py") # Torna alla pagina di visualizzazione
+                st.switch_page("pages/2_visualizza.py") # Torna alla pagina di visualizzazione
             except sqlite3.Error as e:
                 st.error(f"Errore durante l'eliminazione: {e}")
     else:
         st.warning("Il record selezionato non è stato trovato nel database. Potrebbe essere stato eliminato di recente.")
         st.session_state.record_to_modify_id = None # Resetta l'ID per evitare loop
         if st.button("Torna alla Visualizzazione", key="mod_return_to_view"):
-            st.switch_page("pages/visualizza.py")
+            st.switch_page("pages/2_visualizza.py")
 else:
     st.info("Seleziona un record dal menu a discesa qui sopra.")
     if st.button("Vai a Visualizza Record", key="mod_go_to_view_if_no_selection"):
-        st.switch_page("pages/visualizza.py")
+        st.switch_page("pages/2_visualizza.py")
 
 conn.close()
