@@ -1,0 +1,147 @@
+Oggetto: Richiesta di Conversione Bilancio da PDF a CSV Formattato
+Obiettivo:Analizza il file PDF del bilancio allegato e convertilo in un file .csv formattato secondo le specifiche qui sotto, pronto per essere importato nella mia applicazione.
+1. Dati Anagrafici da Usare nel CSV:
+Nome Cliente: 
+Anno N (più recente): 
+Anno N-1 (precedente): 
+2. Struttura del File CSV di Output:
+Il file .csv finale deve avere esattamente le seguenti 5 colonne, in questo ordine, con le intestazioni in minuscolo e separate da virgola (,):cliente,anno,codice,descrizione,importo
+3. Logica di Mappatura e Piano dei Conti:
+Per ogni voce di bilancio trovata nel PDF, devi associarla al conto corretto dal mio "Piano dei Conti" qui sotto.
+La colonna codice nel CSV deve contenere l' id_co corrispondente dal mio Piano dei Conti.
+La colonna descrizione nel CSV deve contenere il Conto corrispondente dal mio Piano dei Conti.
+Ecco il Piano dei Conti di riferimento:
+SP01; Crediti v/ soci vers. Ancora dovuti
+SP02; Costi di impianto e di ampliamento
+SP03; Costi di ricerca, di sviluppo e di pubblicità
+SP04; Diritti di brev.ind. e utilizzo opere dell'ingegno
+SP05; Concessioni, licenze, marchi e diritti simili
+SP06; Avviamento
+SP07; Immobilizzazioni immateriali in corso e acconti
+SP08; Altre immobilizzazioni immateriali
+SP09; Terreni e fabbricati 
+SP10; Impianti e macchinario 
+SP11; Attrezzature industriali e commerciali 
+SP12; Altri beni materiali 
+SP13; Immobilizzazioni materiali in corso e acconti 
+SP14; Immobilizzazioni concesse in locazione finanziaria
+SP15; Partecipazioni in imprese controllate 
+SP16; Partecipazioni in imprese collegate
+SP17; Partecipazioni in altre imprese
+SP18; Crediti fin.vs.controllate nei 12 m.
+SP19; Crediti fin. vs. controllate oltre 12 m.
+SP20; Crediti fin. vs.collegate nei 12 m.
+SP21; Crediti fin. vs.collegate oltre 12 m.
+SP22; Crediti fin. vs.controllanti nei 12 m.
+SP23; Crediti fin. vs.controllanti oltre 12 m.
+SP24; Crediti fin. vs.altri nei 12 m.
+SP25; Crediti fin. vs.altri oltre 12 m.
+SP26; Altri titoli 
+SP27; Azioni proprie 
+SP28; Rimanenze Materie prime
+SP29; Rimanenze prodotti in lav. 
+SP30; Lavori in corso e su ordinazione 
+SP31; Prodotti finiti e merci 
+SP32; Acconti 
+SP33; Clienti nei 12 m.
+SP34; Clienti oltre 12 m.
+SP35; Crediti comm.li vs.controllate nei 12 m.
+SP36; Crediti comm.li vs.controllate oltre 12 m.
+SP37; Crediti comm.li vs.collegate nei 12 m.
+SP38; Crediti comm.li vs.collegate oltre 12 m.
+SP39; Crediti comm.li vs.controllanti nei 12 m.
+SP40; Crediti comm.li vs.controllanti oltre 12 m.
+SP41; Crediti tributari entro 12 m.
+SP42; Crediti tributari oltre 12 m.
+SP43; Imposte anticipate nei 12 m.
+SP44; Imposte anticipate oltre 12 m.
+SP45; Altri crediti nei 12. m.
+SP46; Altri crediti oltre 12 m.
+SP47; Attività finanz. non immobilizate
+SP48; depositi bancari e postali 
+SP49; assegni 
+SP50; danaro e valori in cassa 
+SP51; Ratei e risconti attivi
+SP52; Capitale sociale 
+SP53; Riserva da sovrapprezzo delle azioni 
+SP54; Riserve da rivalutazione 
+SP55; Riserva legale 
+SP56; Riserve statutarie
+SP57; Riserva per azioni proprie in portafoglio 
+SP58; Altre riserve 
+SP59; Utili (perdite) portati a nuovo 
+SP60; Utile (perdita) dell'esercizio 
+SP61; Fondo per tratt.quiescenza e simili 
+SP62; Fondo per imposte 
+SP63; Altri fondi
+SP64;  T.F.R. di lavoro subordinato 
+SP65; Obbligazioni nei 12 m.
+SP66; Obbligazioni oltre 12 m.
+SP67; Obbligazioni conv. nei 12 m.
+SP68; Obbligazioni conv. oltre 12 m.
+SP69; Fin. Soci nei 12 m.
+SP70; Fin. Soci oltre 12 m.
+SP71; Banche entro 12 m.
+SP72; Banche oltre 12 m.
+SP73; Altri finanz. nei 12 m.
+SP74; Altri finanz. oltre 12 m.
+SP75; Acconti nei 12 m.
+SP76; Acconti oltre 12.m.
+SP77; Fornitori nei 12 m.
+SP78; Fornitori oltre 12 m.
+SP79; Titoli di credito nei 12 m.
+SP80; Titoli di credito oltre 12 m.
+SP81; Debiti vs.controllate nei 12 m.
+SP82; Debiti vs.controllate oltre 12 m.
+SP83; Debiti vs.collegate nei 12 m.
+SP84; Debiti vs.collegate oltre 12 m.
+SP85; Debiti vs.controllanti nei 12 m.
+SP86; Debiti vs.controllanti oltre 12 m.
+SP87; Tributari entro 12 m.
+SP88; Tributari oltre 12 m.
+SP89; Ist.previdenza e ass. nei 12 m.
+SP90; Ist.previdenza e ass. oltre 12 m.
+SP91; Altri debiti nei 12 m.
+SP92; Altri debiti olre 12 m.
+SP93; Ratei e risconti passivi
+CE01; Ricavi delle vendite e delle prestazioni 
+CE02; Variazioni rimanenze di prod. in lav., s.l. e p.f. 
+CE03; Variazioni dei lavori in corso su ordinazione 
+CE04; Incrementi di immobilizzazioni per lavori interni 
+CE05; Contributi in conto esercizio
+CE06; Altri ricavi e proventi
+CE07; per materie prime, sussidiarie, di consumo e di merci 
+CE08; per servizi 
+CE09; per godimento di beni di terzi 
+CE10; salari e stipendi 
+CE11; oneri sociali 
+CE12; trattamento di fine rapporto 
+CE13; trattamento di quiescenza e simili
+CE14; altri costi del personale
+CE15; Ammortamento immobilizzazioni immateriali
+CE16; Ammortamento immobilizzazioni materiali 
+CE17; Altre svalutazioni delle immobilizzazioni
+CE18; Svalutazioni dei crediti att.circol.e disponibilità 
+CE19; Variazioni rim. m.p., sussidiarie, di consumo e merci
+CE20; Accantonamenti per rischi 
+CE21; Altri accantonamenti 
+CE22; Oneri diversi di gestione 
+CE23; Proventi da partecipazioni 
+CE24; Altri proventi finanziari 
+CE25; Interessi e altri oneri finanziari
+CE26; Utili e perdite su cambi
+CE27; Rivalutazioni 
+CE28; Svalutazioni
+CE29; Proventi straordinari 
+CE30; Oneri straordinari 
+CE31; Imposte sul reddito dell'esercizio, correnti, differite e anticipate
+CE32; Utile (perdita) dell'esercizio
+
+4. Regole di Elaborazione e Formattazione:
+Struttura Dati: Per ogni voce di bilancio, genera due righe nel CSV: una per l'anno N e una per l'anno N-1.
+Valori Numerici:Rimuovi ogni simbolo di valuta (es. €).
+Rimuovi i separatori delle migliaia (es. il punto in 1.897.810 deve essere rimosso, diventando 1897810).
+Interpreta i valori tra parentesi come negativi (es. (398.574) deve diventare -398574).
+Contesto: Presta attenzione al contesto. Se una riga come "esigibili entro l'esercizio successivo" è preceduta da "debiti verso fornitori", devi associarla al conto corretto per i debiti a breve verso fornitori.Oppure la voce "Utile (perdita) dell'esercizio" è presente sia nel conto economico (CE32) che nello stato patrimoniale (SP60): sono due voci diverse che vanno trattate separatamente.
+
+Azione Richiesta:Per favore, analizza il PDF allegato e restituiscimi unicamente il contenuto del file .csv finale, formattato secondo tutte le specifiche sopra indicate.

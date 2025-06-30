@@ -438,21 +438,26 @@ class BusinessPlanAssumptions:
         """Imposta le assumption manuali per gli anni del BP"""
         self.assumptions = assumptions_dict
     
-    def get_assumption_value(self, assumption_id: int, anno_bp: int) -> float:
-        """Ottiene il valore di un'assumption per un anno del BP"""
-        
-        if assumption_id in self.assumptions and anno_bp in self.assumptions[assumption_id]:
-            return self.assumptions[assumption_id][anno_bp]
-        
-        # Se non impostato manualmente, usa la media storica
-        if assumption_id in self.medie_storiche:
-            return self.medie_storiche[assumption_id]
-        
-        # Fallback al valore di default
-        assumption = next((a for a in ASSUMPTION_DEFINITIONS if a['id'] == assumption_id), None)
-        return assumption['default_value'] if assumption else 0.0
-
-
+    def get_assumption_value(self, assumption_id: int, anno_index: int) -> float:
+        """
+        Ottiene il valore di un'assumption per un dato indice (1=primo anno dopo base).
+        Converte l'indice in anno effettivo se necessario.
+        """
+        try:
+            anni_disponibili = list(sorted(next(iter(self.assumptions.values())).keys()))
+            if 0 <= anno_index - 1 < len(anni_disponibili):
+                anno_bp = anni_disponibili[anno_index - 1]
+            else:
+                return 0.0
+            if assumption_id in self.assumptions and anno_bp in self.assumptions[assumption_id]:
+                return self.assumptions[assumption_id][anno_bp]
+            if assumption_id in self.medie_storiche:
+                return self.medie_storiche[assumption_id]
+            assumption = next((a for a in ASSUMPTION_DEFINITIONS if a['id'] == assumption_id), None)
+            return assumption['default_value'] if assumption else 0.0
+        except Exception as e:
+            print(f"❌ Errore get_assumption_value({assumption_id}, {anno_index}): {e}")
+            return 0.0
 def get_anni_disponibili(cliente: str) -> List[int]:
     """Ottiene la lista degli anni disponibili per un cliente"""
     
