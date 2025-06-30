@@ -466,7 +466,6 @@ def render_step_3_risultati():
                         if pdf_buffer:
                             filename = f"business_plan_{export_tipo.split(' (')[0].replace(' ', '_')}_{selected_cliente}.pdf"
                             st.download_button(label="📥 Scarica PDF", data=pdf_buffer, file_name=filename, mime="application/pdf")
-<<<<<<< HEAD
                     else:
                         st.warning("Nessun dato da esportare per questo report.")
             else:
@@ -537,65 +536,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-=======
-                            st.success("✅ PDF pronto!")
-                else:
-                    st.info("Seleziona un report specifico per il PDF.")
-# Sostituisci questa sezione nel file 8_business_plan.py
-
-        with col_ascii:
-            if st.button("📝 Export ASCII", key="exp_ascii"):
-                if ASCII_AVAILABLE and not export_tipo.startswith('Excel'):
-                    with st.spinner("🔄 Generando ASCII..."):
-                        try:
-                            df_export, title = prepare_export_data_safe(export_tipo, bp_projections)
-                            
-                            if not df_export.empty:
-                                # Parametri per il report ASCII
-                                subtitle = f"Proiezioni Multi-Anno - {selected_cliente}"
-                                report_type = export_tipo.split(' (')[0]
-                                filters = f"Cliente: {selected_cliente} | Anni: {anni_bp[0]}-{anni_bp[-1]} | Durata: {durata_anni} anni"
-                                
-                                # Genera report ASCII completo
-                                ascii_content, ascii_buffer = create_downloadable_ascii_report(
-                                    df=df_export,
-                                    title=title,
-                                    subtitle=subtitle,
-                                    bold_rows=None,  # Puoi specificare righe da evidenziare se necessario
-                                    report_type=report_type,
-                                    filters=filters,
-                                    style="grid"  # Opzioni: grid, simple, heavy, double, pipe, plain
-                                )
-                                
-                                # Filename per download
-                                safe_cliente = selected_cliente.replace(' ', '_').replace('/', '_')
-                                safe_report = report_type.replace(' ', '_').lower()
-                                filename = f"business_plan_{safe_report}_{safe_cliente}.txt"
-                                
-                                # Download button
-                                st.download_button(
-                                    label="📥 Scarica ASCII", 
-                                    data=ascii_buffer, 
-                                    file_name=filename, 
-                                    mime="text/plain"
-                                )
-                                
-                                # Preview del contenuto (opzionale)
-                                with st.expander("👀 Anteprima ASCII"):
-                                    st.text(ascii_content[:2000] + "..." if len(ascii_content) > 2000 else ascii_content)
-                                
-                                st.success("✅ Report ASCII pronto!")
-                            else:
-                                st.error("❌ Nessun dato da esportare")
-                                
-                        except Exception as e:
-                            st.error(f"❌ Errore nella generazione ASCII: {e}")
-                            st.exception(e)
-                else:
-                    if not ASCII_AVAILABLE:
-                        st.error("❌ Modulo ASCII non disponibile. Verifica che ascii_table_generator.py sia presente.")
-                    else:
-                        st.info("💡 Seleziona un report specifico per l'export ASCII.")
-        
-        
->>>>>>> 7c8f244fa9ca7a4f65f785e84312b2aee0268c10
