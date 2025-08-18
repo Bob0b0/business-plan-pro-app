@@ -6,8 +6,8 @@ Ti fornisco:
    DESCRIZIONE|SIGLA|CODICE
 
 Obiettivo:
-Per ogni voce numerica presente nel PDF, generare una riga CSV con queste colonne:
-- CLIENTE = 
+Per ogni voce numerica presente nel PDF, generare una riga CSV con queste colonne: 
+- CLIENTE =
 - ANNO = l’anno di competenza (2022, 2023, ecc.)
 - CODICE = codice esatto dal “piano dei conti” se riconosciuto; altrimenti DA CONFERMARE
 - DESCRIZIONE = testo originale del bilancio o nota integrativa

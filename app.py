@@ -72,4 +72,6 @@ st.markdown("- **Modifica:** Aggiorna o elimina record specifici.")
 st.markdown("- **Report Conto Economico:** Visualizza il bilancio riclassificato del Conto Economico.")
 st.markdown("- **Report Stato Patrimoniale:** Visualizza il bilancio riclassificato dello Stato Patrimoniale.")
 st.markdown("- **Report Flussi Finanziari:** Analizza i flussi di cassa aziendali.") 
+st.markdown("- **Business Plan:** Attraverso una procedura guidata consente la creazione di un business plan prospettico sulla base dei dati storici di partenza e sulle assumption decise dall'utente.") 
+
 st.markdown("I filtri globali nella sidebar a sinistra si applicano a tutte le pagine che li utilizzano.")

@@ -4,7 +4,7 @@ echo --- Aggiornamento App Business Plan Pro su GitHub ---
 echo.
 
 REM Vai alla directory del progetto
-cd "C:\Users\rober\Dropbox\business_plan_pro\"
+cd "C:\Users\rober\Dropbox\app\business_plan_pro\"
 
 REM Verifica se l'operazione precedente ha avuto successo
 IF %ERRORLEVEL% NEQ 0 (
