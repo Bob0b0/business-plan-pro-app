@@ -3,4 +3,4 @@ pandas
 reportlab
 xlsxwriter
 plotly>=5.0.0
-ascii_table_generator
+ascii-table-generator
