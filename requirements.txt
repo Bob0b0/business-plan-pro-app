@@ -4,3 +4,6 @@ reportlab
 xlsxwriter
 plotly>=5.0.0
 ascii-table-generator
+tabulate
+
+
