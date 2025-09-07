@@ -350,7 +350,14 @@ def generate_simple_table_pdf(df_data, years_list, title, filters_applied):
 
 sidebar_filtri.display_sidebar_filters()
 
-DATABASE_NAME = "business_plan_pro.db"
+def get_database_name():
+    """Restituisce il database dell'utente corrente"""
+    username = st.session_state.get('username')
+    if username:
+        return f"business_plan_{username}.db"
+    return "business_plan_pro.db"
+
+DATABASE_NAME = get_database_name()
 
 selected_cliente = st.session_state.selected_cliente
 selected_anni = st.session_state.selected_anni 

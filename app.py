@@ -3,75 +3,93 @@ import streamlit as st
 import sqlite3
 import pandas as pd
 import sidebar_filtri 
+from auth import AuthManager, get_current_database
 
 st.set_page_config(page_title="Business Plan Pro", layout="wide")
 
-# --- CSS per abilitare lo scrolling orizzontale in tutta l'app ---
-# Questo blocco era presente in sidebar_filtri.py o app.py e lo reintegriamo qui.
-st.markdown("""
-<style>
-/* Abilita scroll orizzontale per l'intera app se il contenuto lo richiede */
-.main .block-container {
-    max-width: none !important;
-    overflow-x: auto !important; /* Questo è il cruciale per lo scrolling orizzontale */
-    padding-left: 1rem; /* Manteniamo un padding di base */
-    padding-right: 1rem; /* Manteniamo un padding di base */
-}
+# Controllo autenticazione
+if 'authenticated' in st.session_state and st.session_state.authenticated:
+    
+    # --- CSS per abilitare lo scrolling orizzontale in tutta l'app ---
+    st.markdown("""
+    <style>
+    .main .block-container {
+        max-width: none !important;
+        overflow-x: auto !important;
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+    .stDataFrame, .stTable {
+        overflow-x: auto !important;
+        width: 100% !important;
+    }
+    .stDataEditor > div {
+        overflow-x: auto !important;
+        width: 100% !important;
+    }
+    .stApp {
+        overflow-x: auto !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
-/* Assicura che le tabelle Streamlit native (st.dataframe, st.table) supportino lo scrolling */
-.stDataFrame, .stTable {
-    overflow-x: auto !important;
-    width: 100% !important; /* Rende la tabella larga quanto il contenitore per poi scrollare */
-}
+    # Info utente in sidebar + logout
+    with st.sidebar:
+        st.markdown("---")
+        st.markdown(f"👤 **Utente:** {st.session_state.username}")
+        st.markdown(f"📧 {st.session_state.email}")
+        st.markdown(f"🗃️ **Database:** {get_current_database()}")
+        
+        if st.button("🚪 Logout", use_container_width=True):
+            # Pulisce la sessione
+            for key in list(st.session_state.keys()):
+                del st.session_state[key]
+            st.rerun()
+        st.markdown("---")
 
-/* Miglioramento scroll per data_editor (se deciderai di usarlo in futuro) */
-.stDataEditor > div {
-    overflow-x: auto !important;
-    width: 100% !important;
-}
+    # Mostra filtri sidebar
+    sidebar_filtri.display_sidebar_filters()
 
-/* Assicura che il contenitore principale dell'app permetta lo scroll se il contenuto va oltre */
-.stApp {
-    overflow-x: auto !important;
-}
+    st.title("📊 Business Plan Pro")
+    st.markdown("---")
 
-/* Puoi decidere di rimettere il font Consolas qui se lo desideri per tutti i report */
-/*
-.report-font {
-    font-family: 'Consolas', 'Courier New', monospace;
-    font-size: 14px;
-    white-space: pre;
-    background-color: #f8f9fa;
-    padding: 15px;
-    border-radius: 5px;
-    border: 1px solid #e9ecef;
-    overflow-x: auto;
-    line-height: 1.2;
-}
-.stCode > div {
-    font-family: 'Consolas', 'Courier New', monospace !important;
-    font-size: 14px !important;
-}
-.stText {
-    font-family: 'Consolas', 'Courier New', monospace !important;
-}
-*/
-</style>
-""", unsafe_allow_html=True)
+    st.markdown("## Benvenuto nell'applicazione per la gestione e analisi del Business Plan")
+    st.markdown("Usa il menu a sinistra per navigare tra le diverse sezioni:")
+    st.markdown("- **Inserisci:** Aggiungi nuovi dati al tuo database.")
+    st.markdown("- **Visualizza:** Esplora i dati esistenti con filtri interattivi.")
+    st.markdown("- **Modifica:** Aggiorna o elimina record specifici.")
+    st.markdown("- **Report Conto Economico:** Visualizza il bilancio riclassificato del Conto Economico.")
+    st.markdown("- **Report Stato Patrimoniale:** Visualizza il bilancio riclassificato dello Stato Patrimoniale.")
+    st.markdown("- **Report Flussi Finanziari:** Analizza i flussi di cassa aziendali.") 
+    st.markdown("- **Business Plan:** Attraverso una procedura guidata consente la creazione di un business plan prospettico sulla base dei dati storici di partenza e sulle assumption decise dall'utente.") 
 
-sidebar_filtri.display_sidebar_filters()
+    st.markdown("I filtri globali nella sidebar a sinistra si applicano a tutte le pagine che li utilizzano.")
 
-st.title("📊 Business Plan Pro")
-st.markdown("---")
+    # Mostra statistiche database utente
+    with st.expander("📊 I tuoi dati"):
+        try:
+            conn = sqlite3.connect(get_current_database())
+            
+            # Conta record nelle tabelle principali
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM righe")
+            count_righe = cursor.fetchone()[0]
+            
+            cursor.execute("SELECT COUNT(*) FROM bp_scenarios")
+            count_scenarios = cursor.fetchone()[0]
+            
+            conn.close()
+            
+            st.write(f"📋 Record bilanci: {count_righe}")
+            st.write(f"🎯 Scenari business plan: {count_scenarios}")
+            
+            if count_righe == 0:
+                st.info("Il tuo database è vuoto. Inizia aggiungendo alcuni dati nella sezione 'Inserisci'!")
+                
+        except Exception as e:
+            st.error(f"Errore nel leggere il database: {e}")
 
-st.markdown("## Benvenuto nell'applicazione per la gestione e analisi del Business Plan")
-st.markdown("Usa il menu a sinistra per navigare tra le diverse sezioni:")
-st.markdown("- **Inserisci:** Aggiungi nuovi dati al tuo database.")
-st.markdown("- **Visualizza:** Esplora i dati esistenti con filtri interattivi.")
-st.markdown("- **Modifica:** Aggiorna o elimina record specifici.")
-st.markdown("- **Report Conto Economico:** Visualizza il bilancio riclassificato del Conto Economico.")
-st.markdown("- **Report Stato Patrimoniale:** Visualizza il bilancio riclassificato dello Stato Patrimoniale.")
-st.markdown("- **Report Flussi Finanziari:** Analizza i flussi di cassa aziendali.") 
-st.markdown("- **Business Plan:** Attraverso una procedura guidata consente la creazione di un business plan prospettico sulla base dei dati storici di partenza e sulle assumption decise dall'utente.") 
-
-st.markdown("I filtri globali nella sidebar a sinistra si applicano a tutte le pagine che li utilizzano.")
+else:
+    # Se non autenticato, mostra sistema di login
+    from auth import main_auth
+    main_auth()

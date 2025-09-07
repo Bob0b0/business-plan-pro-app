@@ -7,8 +7,16 @@ import sidebar_filtri # Importa il modulo della sidebar per i filtri globali
 # Chiama la funzione per visualizzare i filtri nella sidebar (saranno sempre visibili)
 sidebar_filtri.display_sidebar_filters()
 
-# Nome del database (deve corrispondere a quello definito in sidebar_filtri.py)
-DATABASE_NAME = "business_plan_pro.db"
+# AGGIUNTO: Funzione per database utente
+def get_database_name():
+    """Restituisce il database dell'utente corrente"""
+    username = st.session_state.get('username')
+    if username:
+        return f"business_plan_{username}.db"
+    return "business_plan_pro.db"
+
+# MODIFICATO: Ora usa database utente
+DATABASE_NAME = get_database_name()
 
 st.title("➕ Nuovo Inserimento")
 

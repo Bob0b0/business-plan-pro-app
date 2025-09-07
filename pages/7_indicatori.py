@@ -7,7 +7,14 @@ import sidebar_filtri
 from financial_model import calculate_all_reports, report_structure_ce, report_structure_sp, report_structure_ff
 
 # Nome del database
-DATABASE_NAME = "business_plan_pro.db"
+def get_database_name():
+    """Restituisce il database dell'utente corrente"""
+    username = st.session_state.get('username')
+    if username:
+        return f"business_plan_{username}.db"
+    return "business_plan_pro.db"
+
+DATABASE_NAME = get_database_name()
 
 # Inizializzazione dei filtri nella sidebar
 sidebar_filtri.display_sidebar_filters()

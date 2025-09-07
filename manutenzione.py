@@ -3,7 +3,7 @@ import sqlite3
 
 def aggiorna_cliente(nuovo_cliente):
     # Connessione al database SQLite
-    conn = sqlite3.connect("business_plan_pro.db")
+    conn = sqlite3.connect(get_database_name())
     cursor = conn.cursor()
 
     try:

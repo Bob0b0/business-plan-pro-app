@@ -16,8 +16,16 @@ from reportlab.lib.units import inch
 # Chiama la funzione per visualizzare i filtri nella sidebar (saranno sempre visibili)
 sidebar_filtri.display_sidebar_filters()
 
-# Nome del database
-DATABASE_NAME = "business_plan_pro.db"
+# AGGIUNTO: Funzione per database utente
+def get_database_name():
+    """Restituisce il database dell'utente corrente"""
+    username = st.session_state.get('username')
+    if username:
+        return f"business_plan_{username}.db"
+    return "business_plan_pro.db"
+
+# MODIFICATO: Ora usa database utente
+DATABASE_NAME = get_database_name()
 
 # Accesso ai valori dei filtri da session_state
 selected_cliente = st.session_state.selected_cliente
@@ -34,6 +42,7 @@ conn = None
 df_filtered = pd.DataFrame() 
 
 try:
+    # MODIFICATO: Usa DATABASE_NAME che ora punta al database utente
     conn = sqlite3.connect(DATABASE_NAME)
     query = """
     SELECT r.ID, r.cliente, r.anno, r.importo, c.Conto, c.Sezione, c.Parte
@@ -60,7 +69,8 @@ try:
 
 except pd.io.sql.DatabaseError as e:
     st.error(f"ERRORE GRAVE NEL CARICAMENTO DEI DATI DAL DATABASE (DatabaseError): {e}")
-    st.info("Assicurati che il database 'business_plan_pro.db' sia presente nella cartella principale e che le tabelle 'righe', 'conti', 'ricla' esistano e siano popolari.")
+    # MODIFICATO: Messaggio di errore aggiornato
+    st.info(f"Assicurati che il database '{DATABASE_NAME}' sia presente nella cartella principale e che le tabelle 'righe', 'conti', 'ricla' esistano e siano popolate.")
     df_filtered = pd.DataFrame()
 except Exception as e:
     st.error(f"ERRORE GENERICO NEL CARICAMENTO DEI DATI: {e}")

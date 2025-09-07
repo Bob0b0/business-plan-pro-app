@@ -39,7 +39,7 @@ if file:
     st.dataframe(df)
 
     if st.button("✅ Importa nel database"):
-        conn = sqlite3.connect("business_plan_pro.db")
+        conn = sqlite3.connect(get_database_name())
         cur = conn.cursor()
         for _, row in df.iterrows():
             cur.execute("""

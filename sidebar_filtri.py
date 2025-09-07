@@ -1,19 +1,25 @@
 # sidebar_filtri.py - Progetto Business Plan Pro - versione aggiornata
-# Sidebar con persistenza filtri e migliorata reattività
+# Sidebar con persistenza filtri e migliorata reattività 
 
 import streamlit as st
 import sqlite3
 import pandas as pd
 
-# Nome del database
-DATABASE_NAME = "business_plan_pro.db"
+# AGGIUNTO: Funzione per database utente
+def get_database_name():
+    """Restituisce il database dell'utente corrente"""
+    username = st.session_state.get('username')
+    if username:
+        return f"business_plan_{username}.db"
+    return "business_plan_pro.db"
+
+# MODIFICATO: Ora usa database utente
+DATABASE_NAME = get_database_name()
 
 def display_sidebar_filters():
     """
     Mostra i filtri nella sidebar con persistenza dello stato
     """
-    # ✅ CSS per abilitare scroll orizzontale in tutta l'app
- 
     st.sidebar.title("🔍 Filtri")
 
     # Inizializza session_state per i filtri se non esistono
@@ -31,6 +37,7 @@ def display_sidebar_filters():
     st.sidebar.subheader("👤 Cliente")
     
     try:
+        # MODIFICATO: Usa DATABASE_NAME che ora punta al database utente
         conn = sqlite3.connect(DATABASE_NAME)
         df_clienti = pd.read_sql_query("SELECT DISTINCT cliente FROM righe ORDER BY cliente", conn)
         clienti_list = ['Tutti'] + df_clienti['cliente'].tolist()
@@ -59,10 +66,11 @@ def display_sidebar_filters():
         st.sidebar.error(f"Errore nel caricamento clienti: {e}")
         st.session_state.selected_cliente = 'Tutti'
 
-    # Sezione Anno con migliorata reattività
+    # Sezione Anno con migliorata reattività 
     st.sidebar.subheader("📅 Anno")
     
     try:
+        # MODIFICATO: Usa DATABASE_NAME che ora punta al database utente
         conn = sqlite3.connect(DATABASE_NAME)
         
         # Query condizionale per anni in base al cliente selezionato
@@ -125,6 +133,7 @@ def display_sidebar_filters():
     st.sidebar.subheader("📋 Sezione")
     
     try:
+        # MODIFICATO: Usa DATABASE_NAME che ora punta al database utente
         conn = sqlite3.connect(DATABASE_NAME)
         
         # Query per sezioni

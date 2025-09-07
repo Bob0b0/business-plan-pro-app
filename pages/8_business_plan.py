@@ -52,7 +52,7 @@ import financial_model
 def save_assumptions_to_db(cliente: str, scenario_name: str, assumptions: dict, anni_bp: list, durata: int) -> None:
     conn = None
     try:
-        conn = sqlite3.connect("business_plan_pro.db")
+        conn = sqlite3.connect(get_database_name())
         cursor = conn.cursor()
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS bp_scenarios (
@@ -75,7 +75,7 @@ def save_assumptions_to_db(cliente: str, scenario_name: str, assumptions: dict, 
 def get_saved_scenarios(cliente: str) -> List[str]:
     conn = None
     try:
-        conn = sqlite3.connect("business_plan_pro.db")
+        conn = sqlite3.connect(sqlite3.connect(get_database_name()))
         cursor = conn.cursor()
         cursor.execute("SELECT scenario_name FROM bp_scenarios WHERE cliente = ? ORDER BY created_at DESC", (cliente,))
         return [row[0] for row in cursor.fetchall()]
@@ -87,7 +87,7 @@ def get_saved_scenarios(cliente: str) -> List[str]:
 def load_assumptions_from_db(cliente: str, scenario_name: str) -> Tuple[Optional[dict], Optional[list], Optional[int]]:
     conn = None
     try:
-        conn = sqlite3.connect("business_plan_pro.db")
+        conn = sqlite3.connect(sqlite3.connect(get_database_name()))
         cursor = conn.cursor()
         cursor.execute("SELECT assumptions_json, anni_bp_json, durata FROM bp_scenarios WHERE cliente = ? AND scenario_name = ?", (cliente, scenario_name))
         result = cursor.fetchone()

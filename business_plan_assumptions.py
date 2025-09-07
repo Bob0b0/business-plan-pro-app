@@ -4,10 +4,18 @@
 import pandas as pd
 import numpy as np
 import sqlite3
+import streamlit as st
 from typing import Dict, List, Tuple, Optional
 
 # Nome del database
-DATABASE_NAME = "business_plan_pro.db"
+def get_database_name():
+    """Restituisce il database dell'utente corrente"""
+    username = st.session_state.get('username')
+    if username:
+        return f"business_plan_{username}.db"
+    return "business_plan_pro.db"
+
+DATABASE_NAME = get_database_name()
 
 # --- DEFINIZIONE DELLE ASSUMPTION ---
 ASSUMPTION_DEFINITIONS = [

@@ -27,7 +27,14 @@ except ImportError:
 sidebar_filtri.display_sidebar_filters()
 
 # Nome del database
-DATABASE_NAME = "business_plan_pro.db"
+def get_database_name():
+    """Restituisce il database dell'utente corrente"""
+    username = st.session_state.get('username')
+    if username:
+        return f"business_plan_{username}.db"
+    return "business_plan_pro.db"
+
+DATABASE_NAME = get_database_name()
 
 # Accesso ai valori dei filtri da session_state
 selected_cliente = st.session_state.selected_cliente
